@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>Passenger Boarding Simulator</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#results">Skip to simulation results</a>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Research simulator · V2 model boundary</p>
+        <h1>Passenger Boarding</h1>
+      </div>
+      <div class="header-status">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span id="run-status" aria-live="polite">Loading model…</span>
+      </div>
+    </header>
+
+    <div class="app-shell">
+      <aside class="scenario-panel" aria-label="Scenario controls">
+        <div class="panel-heading">
+          <span class="section-number">00</span>
+          <div>
+            <h2>Scenario</h2>
+            <p>Inputs at the preparation announcement.</p>
+          </div>
+        </div>
+
+        <form id="scenario-form">
+          <fieldset>
+            <legend>Method</legend>
+            <label for="strategy">Boarding strategy</label>
+            <select id="strategy" name="strategy"></select>
+
+            <div class="control-pair">
+              <div>
+                <label for="access-mode">Aircraft access</label>
+                <select id="access-mode" name="access-mode">
+                  <option value="bridge">Jet bridge</option>
+                  <option value="bus">Remote stand bus</option>
+                </select>
+              </div>
+              <div>
+                <label for="service-model">Row service</label>
+                <select id="service-model" name="service-model">
+                  <option value="field_calibrated">Field model</option>
+                  <option value="user_occupancy_rule">User load rule</option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>T=0 inputs</legend>
+            <div class="range-control">
+              <div><label for="delay-minutes">Current delay</label><output id="delay-output">20 min</output></div>
+              <input id="delay-minutes" type="range" min="0" max="180" step="5" value="20">
+            </div>
+            <div class="range-control">
+              <div><label for="prior-gate-wait">Prior gate wait</label><output id="gate-wait-output">35 min</output></div>
+              <input id="prior-gate-wait" type="range" min="0" max="180" step="5" value="35">
+            </div>
+            <div class="range-control">
+              <div><label for="delay-updates">Previous delay updates</label><output id="updates-output">1</output></div>
+              <input id="delay-updates" type="range" min="0" max="5" step="1" value="1">
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Population & policy</legend>
+            <div class="range-control">
+              <div><label for="family-share">Family/group passengers</label><output id="family-output">30%</output></div>
+              <input id="family-share" type="range" min="0" max="60" step="5" value="30">
+            </div>
+            <div class="range-control">
+              <div><label for="bag-share">Passengers with hand luggage</label><output id="bag-output">75%</output></div>
+              <input id="bag-share" type="range" min="20" max="100" step="5" value="75">
+            </div>
+            <div class="range-control">
+              <div><label for="readiness-target">Overall readiness target</label><output id="readiness-output">90%</output></div>
+              <input id="readiness-target" type="range" min="70" max="100" step="5" value="90">
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Reproducibility</legend>
+            <div class="control-pair">
+              <div>
+                <label for="seed">Flight seed</label>
+                <input id="seed" type="number" min="0" max="4294967295" value="20260813">
+              </div>
+              <div>
+                <label for="monte-carlo-runs">Runs / strategy</label>
+                <input id="monte-carlo-runs" type="number" min="2" max="30" value="6">
+              </div>
+            </div>
+          </fieldset>
+
+          <div class="form-actions">
+            <button id="run-flight" class="primary-action" type="submit">Run flight</button>
+            <button id="compare-strategies" class="secondary-action" type="button">Compare strategies</button>
+          </div>
+        </form>
+
+        <p class="keyboard-note">Every run uses the seed shown above. No hidden random seed is generated.</p>
+      </aside>
+
+      <main id="results" class="workspace" tabindex="-1">
+        <section class="model-warning" aria-label="Model validation status">
+          <span class="warning-mark" aria-hidden="true">!</span>
+          <div>
+            <strong>Frustration outputs are provisional.</strong>
+            <p>The aircraft mechanics have published model support. Gate behaviour and passenger frustration cannot be called validated until Validation Plan Layer 4 passes.</p>
+          </div>
+        </section>
+
+        <section class="phase-story" aria-label="Simulation boundary and phases">
+          <article id="part-1" class="phase-block is-active">
+            <span class="phase-index">01</span>
+            <div>
+              <p class="phase-kicker">At the announcement</p>
+              <h2>Passenger state at T=0</h2>
+              <p>Earlier experience enters only as initial state.</p>
+            </div>
+            <strong id="part-1-value">180 passengers</strong>
+          </article>
+          <article id="part-2" class="phase-block">
+            <span class="phase-index">02</span>
+            <div>
+              <p class="phase-kicker">Method-dependent</p>
+              <h2>Preparation</h2>
+              <p>Decision, movement, staging and correction.</p>
+            </div>
+            <strong id="part-2-value">—</strong>
+          </article>
+          <article id="part-3" class="phase-block">
+            <span class="phase-index">03</span>
+            <div>
+              <p class="phase-kicker">Until the last seat</p>
+              <h2>Embarkation</h2>
+              <p>Bridge/bus, door streams and cabin cells.</p>
+            </div>
+            <strong id="part-3-value">—</strong>
+          </article>
+        </section>
+
+        <section class="metric-band" aria-label="Primary timings">
+          <div><span>Total · T=0 to last seat</span><strong id="metric-total">—</strong></div>
+          <div><span>Preparation</span><strong id="metric-preparation">—</strong></div>
+          <div><span>Embarkation</span><strong id="metric-embarkation">—</strong></div>
+          <div><span>Cabin boarding</span><strong id="metric-cabin">—</strong></div>
+        </section>
+
+        <section class="analysis-section">
+          <div class="section-heading">
+            <span class="section-number">01</span>
+            <div><h2>Initial passenger state</h2><p>Each mark is one person. Purple rings identify family/group members.</p></div>
+            <div id="t0-summary" class="section-summary">Awaiting run</div>
+          </div>
+          <div id="t0-population" class="passenger-field" role="img" aria-label="Passenger initial-frustration distribution"></div>
+          <div class="legend-row">
+            <span><i class="legend-gradient" aria-hidden="true"></i>Lower to higher initial frustration</span>
+            <span><i class="legend-family" aria-hidden="true"></i>Family/group passenger</span>
+          </div>
+        </section>
+
+        <section class="two-column-analysis">
+          <article class="analysis-section">
+            <div class="section-heading compact">
+              <span class="section-number">02</span>
+              <div><h2>Preparation progress</h2><p>Correctly staged passengers and correction events.</p></div>
+            </div>
+            <svg id="preparation-chart" class="data-chart" viewBox="0 0 700 300" role="img" aria-label="Preparation progress over time"></svg>
+            <p id="preparation-caption" class="chart-caption">Awaiting run</p>
+          </article>
+          <article class="analysis-section">
+            <div class="section-heading compact">
+              <span class="section-number">03</span>
+              <div><h2>Embarkation progress</h2><p>Door arrivals, aircraft entries and passengers seated.</p></div>
+            </div>
+            <svg id="embarkation-chart" class="data-chart" viewBox="0 0 700 300" role="img" aria-label="Embarkation progress over time"></svg>
+            <p id="embarkation-caption" class="chart-caption">Awaiting run</p>
+          </article>
+        </section>
+
+        <section class="analysis-section trajectory-section">
+          <div class="section-heading">
+            <span class="section-number">F</span>
+            <div><h2>Frustration trajectory</h2><p>Mean and P90 across passengers still in the boarding process.</p></div>
+            <div id="trajectory-summary" class="section-summary">Provisional coefficients</div>
+          </div>
+          <svg id="frustration-chart" class="data-chart large" viewBox="0 0 1200 380" role="img" aria-label="Mean and P90 frustration trajectory"></svg>
+          <div class="legend-row"><span><i class="legend-line mean" aria-hidden="true"></i>Mean frustration</span><span><i class="legend-line p90" aria-hidden="true"></i>P90 frustration</span><span><i class="legend-phase" aria-hidden="true"></i>Preparation end</span></div>
+        </section>
+
+        <section class="two-column-analysis distribution-row">
+          <article class="analysis-section">
+            <div class="section-heading compact"><span class="section-number">B</span><div><h2>Frustration burden</h2><p>Cumulative F·minutes per passenger.</p></div></div>
+            <svg id="burden-histogram" class="data-chart histogram" viewBox="0 0 700 280" role="img" aria-label="Frustration burden distribution"></svg>
+            <p id="burden-caption" class="chart-caption">Awaiting run</p>
+          </article>
+          <article class="analysis-section">
+            <div class="section-heading compact"><span class="section-number">P</span><div><h2>Peak frustration</h2><p>Highest modeled frustration reached by each passenger.</p></div></div>
+            <svg id="peak-histogram" class="data-chart histogram" viewBox="0 0 700 280" role="img" aria-label="Peak frustration distribution"></svg>
+            <p id="peak-caption" class="chart-caption">Awaiting run</p>
+          </article>
+        </section>
+
+        <section class="analysis-section monte-carlo-section">
+          <div class="section-heading">
+            <span class="section-number">MC</span>
+            <div><h2>Monte Carlo comparison</h2><p>Population-seed uncertainty. Timed-out and invalid runs never enter numeric summaries.</p></div>
+            <div id="comparison-status" class="section-summary" aria-live="polite">Not run</div>
+          </div>
+          <div class="table-scroll">
+            <table id="monte-carlo-table">
+              <thead>
+                <tr><th>Strategy</th><th>Access</th><th>Valid</th><th>Timed out</th><th>Invalid</th><th>Total mean</th><th>P10–P90</th><th>95% mean interval</th><th>Prep mean</th><th>Cabin mean</th><th>Burden mean</th></tr>
+              </thead>
+              <tbody><tr><td colspan="11" class="empty-cell">Run a strategy comparison to populate uncertainty ranges.</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="analysis-section provenance-section">
+          <div class="section-heading">
+            <span class="section-number">P</span>
+            <div><h2>Parameter provenance</h2><p>Every configurable scenario and behaviour value has an evidence status.</p></div>
+            <label class="filter-label" for="provenance-filter">Show <select id="provenance-filter"><option value="all">All parameters</option><option value="calibrated">Calibrated</option><option value="literature">Literature</option><option value="user">User</option><option value="operational">Operational</option><option value="provisional">Provisional</option></select></label>
+          </div>
+          <div class="badge-key" aria-label="Provenance categories"><span class="provenance-badge" data-category="calibrated">calibrated</span><span class="provenance-badge" data-category="literature">literature</span><span class="provenance-badge" data-category="user">user</span><span class="provenance-badge" data-category="operational">operational</span><span class="provenance-badge" data-category="provisional">provisional</span></div>
+          <div class="table-scroll provenance-scroll">
+            <table id="provenance-table"><thead><tr><th>Parameter</th><th>Status</th><th>Default</th><th>Source / note</th></tr></thead><tbody></tbody></table>
+          </div>
+        </section>
+
+        <footer><span>Passenger Boarding Simulator · schema <b id="schema-version">—</b></span><span>Local, deterministic and dependency-free</span></footer>
+      </main>
+    </div>
+  </body>
+</html>

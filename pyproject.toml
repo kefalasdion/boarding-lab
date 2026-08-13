@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "passenger-boarding-simulator"
+version = "1.0.0"
+description = "Deterministic passenger boarding research simulator"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+passenger-boarding-simulator = "boarding_sim.__main__:main"
+
+[tool.unittest]
+start-directory = "tests"
