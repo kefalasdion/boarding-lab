@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import mimetypes
 import threading
 import traceback
@@ -37,11 +38,16 @@ class SimulatorHandler(BaseHTTPRequestHandler):
         status: int,
         body: bytes,
         content_type: str,
+        *,
+        cache_control: str = "no-store",
+        etag: str | None = None,
     ) -> None:
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
+        self.send_header("Cache-Control", cache_control)
+        if etag is not None:
+            self.send_header("ETag", etag)
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "DENY")
         self.send_header("Referrer-Policy", "no-referrer")
@@ -172,7 +178,27 @@ class SimulatorHandler(BaseHTTPRequestHandler):
         content_type = mimetypes.guess_type(candidate.name)[0] or "application/octet-stream"
         if content_type.startswith("text/") or content_type in {"application/javascript", "application/json"}:
             content_type += "; charset=utf-8"
-        self._send_bytes(HTTPStatus.OK, candidate.read_bytes(), content_type)
+        body = candidate.read_bytes()
+        if relative.parts and relative.parts[0] == "data":
+            etag = f'"{hashlib.sha256(body).hexdigest()}"'
+            if self.headers.get("If-None-Match") == etag:
+                self._send_bytes(
+                    HTTPStatus.NOT_MODIFIED,
+                    b"",
+                    content_type,
+                    cache_control="public, max-age=3600",
+                    etag=etag,
+                )
+                return
+            self._send_bytes(
+                HTTPStatus.OK,
+                body,
+                content_type,
+                cache_control="public, max-age=3600",
+                etag=etag,
+            )
+            return
+        self._send_bytes(HTTPStatus.OK, body, content_type)
 
 
 def make_server(host: str = "127.0.0.1", port: int = 8080) -> ThreadingHTTPServer:

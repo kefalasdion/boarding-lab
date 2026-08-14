@@ -113,9 +113,17 @@ export function createRaceCanvas(canvas, {onSelect = () => {}} = {}) {
     }
 
     let aisleCell = 0;
+    let hasMovement = false;
     for (const event of events) {
       if (event[0] > time) break;
-      if (event[1] === lane.moveCode) aisleCell = event[5];
+      if (event[1] === lane.moveCode) {
+        aisleCell = event[5];
+        hasMovement = true;
+      }
+    }
+    if (!hasMovement && seated) {
+      const progress = Math.min(1, Math.max(0, (time - entered[0]) / Math.max(1, seated[0] - entered[0])));
+      aisleCell = progress * Math.max(0, (track[0] - 1) * 2);
     }
     return [
       width * (.66 + Math.min(1, aisleCell / 60) * .30),
@@ -124,10 +132,13 @@ export function createRaceCanvas(canvas, {onSelect = () => {}} = {}) {
   }
 
   function frustrationAt(lane, passengerId, time) {
-    const [first, second, amount] = framePair(lane.replay.frustration_frames, time);
+    const gatePhase = time <= lane.preparationEnd;
+    const frames = gatePhase ? lane.replay.gate.frames : lane.replay.frustration_frames;
+    const [first, second, amount] = framePair(frames, time);
     const firstState = passengerState(first, passengerId);
     const secondState = passengerState(second, passengerId) ?? firstState;
-    return mix(firstState?.[1] ?? 0, secondState?.[1] ?? 0, amount);
+    const valueIndex = gatePhase ? 3 : 1;
+    return mix(firstState?.[valueIndex] ?? 0, secondState?.[valueIndex] ?? 0, amount);
   }
 
   function drawAircraft(laneTop, laneHeight) {

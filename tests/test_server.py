@@ -108,8 +108,17 @@ class ServerTests(unittest.TestCase):
             self.assertEqual(response.status, 200)
             self.assertEqual(response.headers.get_content_type(), "text/html")
             body = response.read().decode("utf-8")
-        self.assertIn("Passenger Boarding", body)
+        self.assertIn("Boarding Lab", body)
         self.assertIn('id="scenario-form"', body)
+
+    def test_default_artifact_has_public_cache_headers_and_etag(self):
+        request = urllib.request.Request(self.base_url + "/data/default-comparison.json")
+        with urllib.request.urlopen(request, timeout=10) as response:
+            self.assertEqual(response.status, 200)
+            self.assertEqual(response.headers["Cache-Control"], "public, max-age=3600")
+            self.assertTrue(response.headers["ETag"])
+            self.assertEqual(response.headers.get_content_type(), "application/json")
+            self.assertGreater(len(response.read()), 1_000_000)
 
 
 if __name__ == "__main__":

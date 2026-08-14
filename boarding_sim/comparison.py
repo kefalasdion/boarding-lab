@@ -163,28 +163,23 @@ def _compact_strategy_result(result: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def run_comparison_monte_carlo(
-    scenario_patch: dict[str, Any] | None,
-    runs: int,
-    base_seed: int,
-) -> dict[str, Any]:
-    validated_runs, validated_seed = _validate_comparison_batch(runs, base_seed)
-    records: list[dict[str, Any]] = []
-    for offset in range(validated_runs):
-        comparison = run_comparison(scenario_patch, validated_seed + offset)
-        records.append(
-            {
-                "seed": comparison["seed"],
-                "status": comparison["status"],
-                "winner": comparison["winner"],
-                "manifest_fingerprint": comparison["manifest_fingerprint"],
-                "strategies": {
-                    strategy_id: _compact_strategy_result(result)
-                    for strategy_id, result in comparison["strategies"].items()
-                },
-            }
-        )
+def compact_comparison_record(comparison: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "seed": comparison["seed"],
+        "status": comparison["status"],
+        "winner": comparison["winner"],
+        "manifest_fingerprint": comparison["manifest_fingerprint"],
+        "strategies": {
+            strategy_id: _compact_strategy_result(result)
+            for strategy_id, result in comparison["strategies"].items()
+        },
+    }
 
+
+def aggregate_comparison_records(
+    records: list[dict[str, Any]], base_seed: int
+) -> dict[str, Any]:
+    records = sorted(records, key=lambda record: record["seed"])
     summary_keys = (
         "preparation_seconds",
         "embarkation_seconds",
@@ -209,13 +204,43 @@ def run_comparison_monte_carlo(
     return {
         "schema_version": SCHEMA_VERSION,
         "model_version": MODEL_VERSION,
-        "base_seed": validated_seed,
-        "requested_runs": validated_runs,
+        "base_seed": base_seed,
+        "requested_runs": len(records),
         "valid_comparisons": sum(record["status"] == "valid" for record in records),
         "win_counts": {
             strategy_id: sum(record["winner"] == strategy_id for record in records)
             for strategy_id in PUBLIC_STRATEGY_IDS
         },
+        "strategy_run_counts": {
+            strategy_id: {
+                "valid": sum(
+                    record["strategies"][strategy_id]["status"] == "valid"
+                    for record in records
+                ),
+                "timed_out": sum(
+                    record["strategies"][strategy_id]["status"] == "timed_out"
+                    for record in records
+                ),
+                "invalid": sum(
+                    record["strategies"][strategy_id]["status"] == "invalid"
+                    for record in records
+                ),
+            }
+            for strategy_id in PUBLIC_STRATEGY_IDS
+        },
         "summaries": summaries,
         "run_records": records,
     }
+
+
+def run_comparison_monte_carlo(
+    scenario_patch: dict[str, Any] | None,
+    runs: int,
+    base_seed: int,
+) -> dict[str, Any]:
+    validated_runs, validated_seed = _validate_comparison_batch(runs, base_seed)
+    records: list[dict[str, Any]] = []
+    for offset in range(validated_runs):
+        comparison = run_comparison(scenario_patch, validated_seed + offset)
+        records.append(compact_comparison_record(comparison))
+    return aggregate_comparison_records(records, validated_seed)

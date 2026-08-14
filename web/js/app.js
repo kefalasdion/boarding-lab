@@ -53,6 +53,23 @@ function passengerState(frame, passengerId) {
   return frame[3].find((state) => state[0] === passengerId) ?? null;
 }
 
+function liveFrameAt(result, time) {
+  if (time <= result.metrics.timings_seconds.preparation) {
+    return latestAt(result.replay.gate.frames, time);
+  }
+  return latestAt(result.replay.frustration_frames, time);
+}
+
+function livePassengerValues(result, frame, passengerId, time) {
+  const state = passengerState(frame, passengerId);
+  if (!state) return {frustration: 0, burden: 0};
+  const gatePhase = time <= result.metrics.timings_seconds.preparation;
+  return {
+    frustration: state[gatePhase ? 3 : 1],
+    burden: state[gatePhase ? 4 : 2],
+  };
+}
+
 function scenarioPayload() {
   return {
     flightContext: {
@@ -112,7 +129,7 @@ function updateLiveRow(strategyId, result, time) {
   const row = byId(ROW_IDS[strategyId]);
   const cells = row.children;
   const counts = phaseAndCounts(result, time);
-  const frame = latestAt(result.replay.frustration_frames, time);
+  const frame = liveFrameAt(result, time);
   const experience = result.metrics.passenger_experience;
   cells[1].textContent = counts.phase;
   cells[2].textContent = `${counts.prepared}/${result.metrics.passenger_count}`;
@@ -132,9 +149,9 @@ function updateInspector(time) {
   const strategyId = comparison.strategy_order[selectedPassenger.laneIndex];
   const result = comparison.strategies[strategyId];
   const passenger = result.passengers.find((item) => item.id === selectedPassenger.passengerId);
-  const frame = latestAt(result.replay.frustration_frames, time);
-  const state = passengerState(frame, selectedPassenger.passengerId);
-  const visual = frustrationVisual(state?.[1] ?? 0, result.metrics.passenger_experience.threshold);
+  const frame = liveFrameAt(result, time);
+  const values = livePassengerValues(result, frame, selectedPassenger.passengerId, time);
+  const visual = frustrationVisual(values.frustration, result.metrics.passenger_experience.threshold);
   const inspector = byId('passenger-inspector');
   inspector.replaceChildren();
   const index = document.createElement('span');
@@ -143,7 +160,7 @@ function updateInspector(time) {
   const title = document.createElement('strong');
   title.textContent = `Seat ${passenger.row}${passenger.seat}${passenger.family_id ? ` · group ${passenger.family_id}` : ''}`;
   const detail = document.createElement('p');
-  detail.textContent = `${phaseAndCounts(result, time).phase} · ${visual.label} ${Math.round((state?.[1] ?? 0) * 100)}/100 · ${numberLabel(state?.[2] ?? 0)} accumulated F·min`;
+  detail.textContent = `${phaseAndCounts(result, time).phase} · ${visual.label} ${Math.round(values.frustration * 100)}/100 · ${numberLabel(values.burden)} accumulated F·min`;
   inspector.append(index, title, detail);
 }
 
@@ -182,8 +199,9 @@ function beginAnimation() {
   animationFrame = requestAnimationFrame(tick);
 }
 
-function installComparison(data) {
+function installComparison(data, summary = null) {
   comparison = data;
+  byId('seed').value = String(data.seed);
   const duration = Math.max(...data.strategy_order.map((id) => data.strategies[id].replay.ends_at_seconds));
   timeline = createTimeline({duration, reducedMotion, eventTimes: eventTimesFor(data)});
   byId('timeline-scrubber').max = String(Math.ceil(duration));
@@ -194,7 +212,7 @@ function installComparison(data) {
     },
   });
   renderer.setComparison(data);
-  renderResults(data);
+  renderResults(data, summary);
   byId('race-status').textContent = 'Ready · same passengers and one continuous clock';
   byId('model-version').textContent = data.model_version;
   renderAt(0);
@@ -234,6 +252,16 @@ async function loadComparison(scenario = {}, seed = 20260813) {
     byId('race-status').textContent = error.message;
   } finally {
     byId('run-comparison').disabled = false;
+  }
+}
+
+async function loadDefaultComparison() {
+  byId('race-status').textContent = 'Loading the representative 100-run comparison…';
+  try {
+    const artifact = await requestJson('/data/default-comparison.json');
+    installComparison(artifact.representative, artifact.summary);
+  } catch {
+    await loadComparison(scenarioPayload(), Number(byId('seed').value));
   }
 }
 
@@ -309,4 +337,4 @@ for (const [inputId, outputId, suffix] of [
 requestJson('/api/config').then(initializeExpert).catch((error) => {
   byId('expert-controls').textContent = error.message;
 });
-loadComparison(scenarioPayload(), Number(byId('seed').value));
+loadDefaultComparison();

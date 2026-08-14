@@ -73,7 +73,7 @@ function resultCards(comparison, container) {
   }
 }
 
-function timingTable(comparison, table) {
+function timingTable(comparison, table, summary = null) {
   const body = table.tBodies[0];
   body.replaceChildren();
   for (const [label, read] of measureRows()) {
@@ -94,15 +94,29 @@ function timingTable(comparison, table) {
     }
     body.append(row);
   }
-  for (const label of ['P10–P90 total across repeated runs', '95% mean interval', 'Valid / timed-out / invalid runs']) {
+  const uncertaintyRows = [
+    ['P10–P90 total across repeated runs', (strategyId) => {
+      const total = summary?.summaries?.[strategyId]?.total_seconds;
+      return total ? `${clockLabel(total.p10)}–${clockLabel(total.p90)}` : 'Unavailable';
+    }],
+    ['95% mean interval', (strategyId) => {
+      const total = summary?.summaries?.[strategyId]?.total_seconds;
+      return total ? `${clockLabel(total.mean_ci95_low)}–${clockLabel(total.mean_ci95_high)}` : 'Unavailable';
+    }],
+    ['Valid / timed-out / invalid runs', (strategyId) => {
+      const counts = summary?.strategy_run_counts?.[strategyId];
+      return counts ? `${counts.valid} / ${counts.timed_out} / ${counts.invalid}` : 'Unavailable';
+    }],
+  ];
+  for (const [label, read] of uncertaintyRows) {
     const row = document.createElement('tr');
     const heading = document.createElement('th');
     heading.scope = 'row';
     heading.textContent = label;
     row.append(heading);
-    for (const _strategyId of comparison.strategy_order) {
+    for (const strategyId of comparison.strategy_order) {
       const cell = document.createElement('td');
-      cell.textContent = 'Unavailable';
+      cell.textContent = read(strategyId);
       row.append(cell);
     }
     body.append(row);
@@ -171,12 +185,12 @@ function drawHeatmap(comparison, strategyId, metric) {
   fallback.replaceChildren(table);
 }
 
-export function renderResults(comparison) {
+export function renderResults(comparison, summary = null) {
   const conclusion = conclusionFor(comparison);
   document.getElementById('result-headline').textContent = conclusion.headline;
   document.getElementById('result-summary').textContent = conclusion.summary;
   resultCards(comparison, document.getElementById('result-comparison'));
-  timingTable(comparison, document.getElementById('timing-table'));
+  timingTable(comparison, document.getElementById('timing-table'), summary);
   const strategySelect = document.getElementById('heatmap-strategy');
   strategySelect.replaceChildren(...comparison.strategy_order.map((strategyId) => {
     const option = document.createElement('option');
