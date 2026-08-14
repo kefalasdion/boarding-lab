@@ -2,7 +2,7 @@
   "aircraft": {"type":"A320_180","rows":30,"seatsPerRow":6,"loadFactor":1.0},
   "flightContext": {"delayMinutes":20,"priorDelayUpdates":1,"priorGateWaitMinutes":35,"priorAirportDwellMinutes":100,"connectionPressureShare":0.12},
   "population": {"familyPassengerShare":0.30,"handLuggageShare":0.75,"twoBagShareAmongBagPassengers":0.08},
-  "preparation": {"policy":{"mode":"strict_preparation","readinessTarget":0.90,"firstCohortTarget":0.95},"gateUsableAreaM2":190,"averageStartDistanceM":12,"maxPreparationSeconds":1800},
+  "preparation": {"policy":{"mode":"strict_preparation","readinessTarget":0.90,"firstCohortTarget":0.95},"gateUsableAreaM2":190,"gateAspectRatio":1.6,"passengerMarkerDiameterM":0.45,"queueLaneSpacingM":0.75,"replaySampleSeconds":2,"averageStartDistanceM":12,"maxPreparationSeconds":1800},
   "access": {"mode":"bridge","bridgeLengthM":35,"bridgeWalkSpeedMps":1.15,"gateScanMeanSeconds":2.4,"bridgeMinimumHeadwaySeconds":3.7,"busCount":2,"busCapacity":90,"busBoardMeanSeconds":1.8,"busTravelMeanSeconds":180,"busTravelSdSeconds":25,"busUnloadMeanSeconds":1.25},
   "boarding": {"strategy":"random_front","serviceModel":"field_calibrated","cellSizeM":0.4,"dtSeconds":0.5,"aisleCellsPerRow":2,"walkingSpeedMps":0.8,"baggageWeibullShape":1.7,"baggageWeibullScaleSeconds":16.0,"seatMovementTriangularSeconds":[1.8,2.4,3.0],"customSeatBaseSeconds":15,"customLoadThreshold":0.60,"customIncrementSeconds":5,"customIncrementLoadStep":0.10,"maxBoardingSeconds":3600},
   "metrics": {"frustrationThreshold":0.75,"historySampleSeconds":10}

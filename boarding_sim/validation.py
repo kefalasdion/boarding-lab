@@ -98,8 +98,24 @@ def _validate(scenario: dict[str, Any]) -> list[ValidationIssue]:
         issues.append(ValidationIssue("preparation.policy.mode", "unsupported_policy", "Only strict_preparation is implemented in schema version 1."))
     for path in ("preparation.policy.readinessTarget", "preparation.policy.firstCohortTarget"):
         _range(issues, scenario, path, 0.01, 1.0)
-    for path in ("preparation.gateUsableAreaM2", "preparation.averageStartDistanceM", "preparation.maxPreparationSeconds"):
+    for path in (
+        "preparation.gateUsableAreaM2",
+        "preparation.gateAspectRatio",
+        "preparation.passengerMarkerDiameterM",
+        "preparation.queueLaneSpacingM",
+        "preparation.averageStartDistanceM",
+        "preparation.maxPreparationSeconds",
+    ):
         _range(issues, scenario, path, 0, inclusive_min=False)
+    _range(issues, scenario, "preparation.replaySampleSeconds", 1, 10)
+    if not isinstance(scenario["preparation"]["replaySampleSeconds"], int):
+        issues.append(
+            ValidationIssue(
+                "preparation.replaySampleSeconds",
+                "invalid_type",
+                "Expected a whole number of seconds.",
+            )
+        )
     if not isinstance(scenario["access"]["mode"], str) or scenario["access"]["mode"] not in {"bridge", "bus"}:
         issues.append(ValidationIssue("access.mode", "invalid_choice", "Expected bridge or bus."))
     for path in ("access.bridgeLengthM", "access.bridgeWalkSpeedMps", "access.gateScanMeanSeconds", "access.bridgeMinimumHeadwaySeconds", "access.busCount", "access.busCapacity", "access.busBoardMeanSeconds", "access.busTravelMeanSeconds", "access.busUnloadMeanSeconds"):

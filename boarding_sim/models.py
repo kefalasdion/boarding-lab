@@ -77,6 +77,35 @@ class ReadinessState:
     ready: bool
 
 
+@dataclass(frozen=True)
+class GatePoint:
+    x_m: float
+    y_m: float
+
+
+@dataclass(frozen=True)
+class QueueSlot:
+    passenger_id: int
+    slot_index: int
+    cohort: int
+    point: GatePoint
+
+
+@dataclass(frozen=True)
+class GateLayout:
+    width_m: float
+    height_m: float
+    boarding_control: GatePoint
+
+
+@dataclass
+class GatePlan:
+    layout: GateLayout
+    start_positions: dict[int, GatePoint]
+    slots: list[QueueSlot]
+    queue_slots: dict[int, GatePoint]
+
+
 @dataclass
 class PreparationResult:
     time_seconds: float
