@@ -25,6 +25,9 @@
 .lane-key div:last-child { border-bottom: 0; }
 .lane-key strong { font-family: Georgia, serif; font-size: 19px; font-weight: 500; }
 .lane-key span { margin-top: 2px; color: #91a4bb; font-size: 10px; }
+.lane-frustration { display: flex; align-items: baseline; gap: 6px; margin: 7px 0 0; }
+.lane-frustration small { color: #8ea6c2; font-size: 8px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.lane-frustration output { color: var(--frustration-calm); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
 #race-canvas { display: block; width: 100%; height: auto; min-height: 520px; }
 
 .race-support { display: grid; grid-template-columns: 1fr minmax(270px, .65fr); gap: 30px; padding-top: 24px; }

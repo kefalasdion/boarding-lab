@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this simulator, please cite it as below."
+title: "Boarding Lab: a passenger-level aircraft boarding and frustration simulator"
+abstract: >-
+  A deterministic, passenger-by-passenger research simulator that models
+  aircraft boarding from the gate preparation announcement to the final seated
+  passenger, including model-predicted passenger frustration. Aircraft
+  mechanics follow published field-validated models; gate preparation and
+  frustration coefficients are provisional model assumptions.
+authors:
+  - family-names: Kefalas
+    given-names: Dennis
+type: software
+license: MIT
+version: 0.3.0
+date-released: "2026-08-14"
+keywords:
+  - aircraft boarding
+  - discrete event simulation
+  - passenger experience
+  - agent-based modelling

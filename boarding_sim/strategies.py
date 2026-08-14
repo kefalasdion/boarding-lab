@@ -52,6 +52,7 @@ class Strategy:
     door: Callable[[Passenger], str]
     preserve_seat_door: bool = False
     companion_policy: str = "preserve"
+    release_mode: str | None = None
 
 
 STRATEGIES: dict[str, Strategy] = {
@@ -98,6 +99,7 @@ STRATEGIES: dict[str, Strategy] = {
         lambda p, _random_key: strict_steffen_rank(p),
         lambda _p: "front",
         companion_policy="separate",
+        release_mode="individual",
     ),
     "split_wilma_two_door": Strategy(
         "split_wilma_two_door", "Split doors + A/F → B/E → C/D", "bus", 6,
@@ -116,6 +118,13 @@ def strategy_complexity(strategy: Strategy) -> float:
     if strategy.prep_cohorts <= 1:
         return 0.0
     return math.log2(strategy.prep_cohorts) / math.log2(18)
+
+
+def strategy_release_mode(strategy: Strategy) -> str:
+    """Resolve how the gate agent releases this strategy's passengers."""
+    if strategy.release_mode:
+        return strategy.release_mode
+    return "general" if strategy.prep_cohorts <= 1 else "cohort"
 
 
 def strategy_catalog() -> list[dict[str, object]]:

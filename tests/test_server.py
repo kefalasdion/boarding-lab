@@ -119,6 +119,7 @@ class ServerTests(unittest.TestCase):
             ("/SOURCES.md", "Research sources"),
             ("/VALIDATION_PLAN.md", "Validation Plan"),
             ("/RESULT_SCHEMA.md", "Public Result Schema"),
+            ("/RESEARCH.md", "Real-world observations"),
         ):
             with urllib.request.urlopen(self.base_url + path, timeout=10) as response:
                 self.assertEqual(response.status, 200)

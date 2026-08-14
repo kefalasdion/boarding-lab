@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="/race.css">
     <link rel="stylesheet" href="/expert.css">
+    <link rel="stylesheet" href="/capture.css">
     <script type="module" src="/js/app.js"></script>
   </head>
   <body>
@@ -75,16 +76,25 @@
             <span>Gate</span><span>Queue &amp; access</span><span>Aircraft</span>
           </div>
           <div class="lane-key" aria-hidden="true">
-            <div><strong>Random</strong><span>One loose queue</span></div>
-            <div><strong>Back-to-front</strong><span>Six row zones</span></div>
-            <div><strong>Strict Steffen</strong><span>Theoretical sequence</span></div>
+            <div>
+              <strong>Random</strong><span>One loose queue</span>
+              <p class="lane-frustration"><small>Frustration</small><output id="lane-frustration-random_front">0%</output></p>
+            </div>
+            <div>
+              <strong>Back-to-front</strong><span>Six row zones</span>
+              <p class="lane-frustration"><small>Frustration</small><output id="lane-frustration-back_to_front_zones">0%</output></p>
+            </div>
+            <div>
+              <strong>Strict Steffen</strong><span>Theoretical sequence</span>
+              <p class="lane-frustration"><small>Frustration</small><output id="lane-frustration-strict_steffen">0%</output></p>
+            </div>
           </div>
           <canvas id="race-canvas" width="1440" height="690" aria-label="Animated comparison of three passenger boarding strategies" aria-hidden="true"></canvas>
         </div>
 
         <div class="race-support content-width">
           <div id="frustration-legend" class="frustration-legend" aria-label="Model-predicted frustration scale">
-            <div class="legend-title"><strong>Live frustration index</strong><span>0–100 · current, not accumulated</span></div>
+            <div class="legend-title"><strong>Live frustration index</strong><span>0–100 · current, not accumulated · model-predicted</span></div>
             <div class="legend-ramp" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
             <div class="legend-labels"><span>Calm</span><span>Low</span><span>Raised</span><span>High</span><span>Critical</span></div>
           </div>
@@ -206,7 +216,7 @@
         <div class="method-copy">
           <p>The three-way presentation is inspired by Adam Jacobs’s visualization of Random, Back-to-front and Strict Steffen boarding. That work starts the visible race at boarding; Boarding Lab extends the clock backward to the first preparation instruction.</p>
           <p>This standalone research simulator is deterministic for a given seed. Its source notes and validation boundaries distinguish published aircraft mechanics from provisional preparation and frustration inputs.</p>
-          <nav aria-label="Research links"><a href="/SOURCES.md">Sources</a><a href="/VALIDATION_PLAN.md">Validation plan</a><a href="/RESULT_SCHEMA.md">Result schema</a></nav>
+          <nav aria-label="Research links"><a href="/RESEARCH.md">Research collection</a><a href="/SOURCES.md">Sources</a><a href="/VALIDATION_PLAN.md">Validation plan</a><a href="/RESULT_SCHEMA.md">Result schema</a></nav>
         </div>
       </section>
     </main>

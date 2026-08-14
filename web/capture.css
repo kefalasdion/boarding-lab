@@ -1,0 +1,57 @@
+/* Recording layout for the LinkedIn video. Applied only with ?capture=1.
+   The interactive page is untouched when the parameter is absent. */
+
+.capture { width: 1080px; min-height: 1350px; overflow: hidden; }
+.capture .site-header,
+.capture .premise,
+.capture .race-heading,
+.capture .clock-dock .playback-controls,
+.capture .table-wrap,
+.capture .passenger-inspector,
+.capture .scenario-section,
+.capture .expert-section,
+.capture .method-section,
+.capture .site-footer,
+.capture .result-actions,
+.capture .heatmap-layout,
+.capture .evidence-disclosure { display: none !important; }
+
+.capture main { display: block; }
+.capture .race-section { padding: 30px 34px 26px; }
+.capture .clock-dock { justify-content: flex-start; margin-bottom: 26px; }
+.capture .master-clock-wrap output { font-size: 62px; }
+.capture .race-support { grid-template-columns: 1fr; padding-top: 20px; }
+
+/* Bigger lanes: the live table is gone, so the race takes the space back.
+   The stage is inset from the left so the enlarged lane labels never overlap
+   the gate passengers the canvas draws. */
+.capture .race-stage { padding-left: 246px; }
+.capture .race-axis { padding-left: 22px; }
+.capture .lane-key { width: 246px; padding: 12px 20px; }
+.capture .lane-key strong { font-size: 25px; }
+.capture .lane-key span { font-size: 13px; }
+.capture .lane-frustration { margin-top: 12px; }
+.capture .lane-frustration small { font-size: 10px; }
+.capture .lane-frustration output { font-size: 38px; }
+.capture #race-canvas { min-height: 900px; }
+.capture .legend-title strong { font-size: 20px; }
+.capture .legend-title span,
+.capture .legend-labels { font-size: 13px; }
+
+/* Each stage owns the whole 1350px frame; the other is removed from flow so it
+   cannot push the visible stage out of shot. */
+.capture[data-capture-stage="race"] .race-section { min-height: 1350px; }
+.capture[data-capture-stage="race"] .results-section { display: none !important; }
+
+.capture[data-capture-stage="result"] .race-section { display: none !important; }
+.capture[data-capture-stage="result"] .results-section { display: block; min-height: 1350px; width: auto; max-width: none; padding: 30px 44px; }
+.capture[data-capture-stage="result"] #result-headline { font-size: 38px; line-height: 1.12; }
+.capture[data-capture-stage="result"] .result-summary { font-size: 17px; }
+/* The phase-by-phase frustration split is the point of the experiment, so the
+   closing card keeps the results table even though the race hides all tables. */
+.capture[data-capture-stage="result"] .result-table-wrap { display: block !important; margin-top: 20px; overflow: visible; }
+.capture[data-capture-stage="result"] .timing-table { min-width: 0; width: 100%; font-size: 15px; }
+.capture[data-capture-stage="result"] .timing-table caption { font-size: 14px; }
+.capture[data-capture-stage="result"] .timing-table th,
+.capture[data-capture-stage="result"] .timing-table td { padding: 6px 10px; }
+.capture[data-capture-stage="result"] .timing-table small { font-size: 11px; }

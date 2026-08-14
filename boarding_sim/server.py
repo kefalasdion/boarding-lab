@@ -29,7 +29,12 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 WEB_ROOT = PROJECT_ROOT / "web"
 MAX_BODY_BYTES = 1_000_000
 SIMULATION_SLOTS = threading.BoundedSemaphore(2)
-PUBLIC_DOCUMENTS = {"SOURCES.md", "VALIDATION_PLAN.md", "RESULT_SCHEMA.md"}
+PUBLIC_DOCUMENTS = {
+    "SOURCES.md",
+    "VALIDATION_PLAN.md",
+    "RESULT_SCHEMA.md",
+    "RESEARCH.md",
+}
 
 
 class SimulatorHandler(BaseHTTPRequestHandler):

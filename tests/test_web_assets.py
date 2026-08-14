@@ -12,7 +12,7 @@ class WebAssetContractTests(unittest.TestCase):
         cls.html = (ROOT / "web" / "index.html").read_text(encoding="utf-8")
         cls.css = "\n".join(
             (ROOT / "web" / name).read_text(encoding="utf-8")
-            for name in ("styles.css", "race.css", "expert.css")
+            for name in ("styles.css", "race.css", "expert.css", "capture.css")
             if (ROOT / "web" / name).exists()
         )
         cls.javascript = "\n".join(
@@ -99,6 +99,31 @@ class WebAssetContractTests(unittest.TestCase):
 
     def test_obsolete_root_entry_point_is_removed(self):
         self.assertFalse((ROOT / "index.html").exists())
+
+    def test_each_lane_shows_a_live_frustration_readout(self):
+        for strategy_id in ("random_front", "back_to_front_zones", "strict_steffen"):
+            self.assertIn(f'id="lane-frustration-{strategy_id}"', self.html)
+        self.assertIn("model-predicted", self.html)
+
+    def test_lane_frustration_is_rendered_from_the_serialized_mean(self):
+        self.assertIn("updateLaneFrustration", self.javascript)
+        self.assertIn("Math.round(frame[1] * 100)", self.javascript)
+
+    def test_capture_mode_hides_controls_and_the_live_table(self):
+        capture = (ROOT / "web" / "capture.css").read_text(encoding="utf-8")
+        for selector in (
+            ".capture .site-header",
+            ".capture .clock-dock .playback-controls",
+            ".capture .table-wrap",
+            ".capture .passenger-inspector",
+        ):
+            self.assertIn(selector, capture)
+        self.assertIn('[data-capture-stage="result"]', capture)
+
+    def test_capture_mode_is_opt_in_by_query_parameter(self):
+        self.assertIn("applyCaptureMode", self.javascript)
+        self.assertIn("'capture'", self.javascript)
+        self.assertIn("'autoplay'", self.javascript)
 
 
 if __name__ == "__main__":
