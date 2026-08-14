@@ -106,6 +106,31 @@ class GatePlan:
     queue_slots: dict[int, GatePoint]
 
 
+@dataclass(frozen=True)
+class GatePassengerState:
+    passenger_id: int
+    x_m: float
+    y_m: float
+    state: str
+    frustration: float
+    frustration_burden: float
+
+
+@dataclass(frozen=True)
+class GateFrame:
+    time_seconds: float
+    mean_frustration: float
+    mean_accumulated_burden: float
+    passengers: list[GatePassengerState]
+
+
+@dataclass
+class GateReplay:
+    layout: GateLayout
+    slots: list[QueueSlot]
+    frames: list[GateFrame]
+
+
 @dataclass
 class PreparationResult:
     time_seconds: float
@@ -115,6 +140,7 @@ class PreparationResult:
     readiness: ReadinessState
     complexity: float
     timed_out: bool
+    gate_replay: GateReplay
 
 
 @dataclass(frozen=True)

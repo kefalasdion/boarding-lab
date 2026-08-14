@@ -2,6 +2,7 @@ import unittest
 
 from boarding_sim.population import generate_population
 from boarding_sim.preparation import (
+    CompletePreparationPolicy,
     StrictPreparationPolicy,
     readiness_policy_from_config,
     simulate_preparation,
@@ -38,6 +39,14 @@ class PreparationPolicyTests(unittest.TestCase):
         self.assertFalse(policy.evaluate(self.passengers).ready)
         for passenger in first_members:
             passenger.prep_correct = True
+        self.assertTrue(policy.evaluate(self.passengers).ready)
+
+    def test_complete_policy_requires_every_passenger(self):
+        policy = CompletePreparationPolicy()
+        for passenger in self.passengers[:-1]:
+            passenger.prep_correct = True
+        self.assertFalse(policy.evaluate(self.passengers).ready)
+        self.passengers[-1].prep_correct = True
         self.assertTrue(policy.evaluate(self.passengers).ready)
 
 

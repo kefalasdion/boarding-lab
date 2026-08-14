@@ -115,6 +115,7 @@ def run_flight(
                 "correction_count": preparation.corrections,
                 "progress": preparation.history,
                 "events": preparation.events,
+                "gate_replay": preparation.gate_replay,
             },
             "part3_embarkation": {
                 "duration_seconds": metrics["timings_seconds"]["embarkation"],

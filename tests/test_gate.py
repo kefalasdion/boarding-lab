@@ -3,6 +3,7 @@ import unittest
 
 from boarding_sim.gate import build_gate_plan
 from boarding_sim.population import assign_strategy, generate_manifest
+from boarding_sim.preparation import simulate_preparation
 from boarding_sim.prng import RNG
 from boarding_sim.strategies import strategy_by_id
 from boarding_sim.validation import load_behaviour_calibration, normalize_scenario
@@ -82,6 +83,68 @@ class GateLayoutTests(unittest.TestCase):
             self.plan("strict_steffen", seed=5150),
             self.plan("strict_steffen", seed=5150),
         )
+
+    def test_complete_preparation_replay_has_no_overlaps_or_teleportation(self):
+        scenario = normalize_scenario(
+            {
+                "boarding": {"strategy": "strict_steffen"},
+                "preparation": {
+                    "policy": {
+                        "mode": "complete_preparation",
+                        "readinessTarget": 1.0,
+                        "firstCohortTarget": 1.0,
+                    }
+                },
+            }
+        )
+        strategy = strategy_by_id("strict_steffen")
+        passengers = assign_strategy(
+            copy.deepcopy(self.manifest), strategy, RNG(77)
+        )
+        plan = build_gate_plan(passengers, scenario, strategy, RNG(123))
+        result = simulate_preparation(
+            passengers,
+            scenario,
+            strategy,
+            RNG(456),
+            self.calibration,
+            gate_plan=plan,
+        )
+        self.assertFalse(result.timed_out)
+        self.assertEqual(result.readiness.overall, 1.0)
+        self.assertTrue(result.gate_replay.frames)
+        previous = None
+        passenger_by_id = {passenger.id: passenger for passenger in passengers}
+        for frame in result.gate_replay.frames:
+            points = {
+                state.passenger_id: (state.x_m, state.y_m)
+                for state in frame.passengers
+            }
+            self.assertEqual(len(points), len(set(points.values())))
+            if previous is not None:
+                elapsed = frame.time_seconds - previous.time_seconds
+                previous_points = {
+                    state.passenger_id: (state.x_m, state.y_m)
+                    for state in previous.passengers
+                }
+                for passenger_id, point in points.items():
+                    prior = previous_points[passenger_id]
+                    distance = ((point[0] - prior[0]) ** 2 + (point[1] - prior[1]) ** 2) ** 0.5
+                    maximum = passenger_by_id[passenger_id].walking_speed_mps * elapsed
+                    self.assertLessEqual(
+                        distance,
+                        maximum + scenario["preparation"]["queueLaneSpacingM"],
+                    )
+            previous = frame
+        final = {
+            state.passenger_id: (state.x_m, state.y_m)
+            for state in result.gate_replay.frames[-1].passengers
+        }
+        expected = {
+            passenger_id: (point.x_m, point.y_m)
+            for passenger_id, point in plan.queue_slots.items()
+        }
+        self.assertEqual(final, expected)
 
 
 if __name__ == "__main__":

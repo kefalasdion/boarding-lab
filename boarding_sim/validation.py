@@ -94,8 +94,17 @@ def _validate(scenario: dict[str, Any]) -> list[ValidationIssue]:
     _range(issues, scenario, "flightContext.connectionPressureShare", 0, 1)
     for path in ("population.familyPassengerShare", "population.handLuggageShare", "population.twoBagShareAmongBagPassengers"):
         _range(issues, scenario, path, 0, 1)
-    if scenario["preparation"]["policy"]["mode"] != "strict_preparation":
-        issues.append(ValidationIssue("preparation.policy.mode", "unsupported_policy", "Only strict_preparation is implemented in schema version 1."))
+    if scenario["preparation"]["policy"]["mode"] not in {
+        "strict_preparation",
+        "complete_preparation",
+    }:
+        issues.append(
+            ValidationIssue(
+                "preparation.policy.mode",
+                "unsupported_policy",
+                "Expected strict_preparation or complete_preparation.",
+            )
+        )
     for path in ("preparation.policy.readinessTarget", "preparation.policy.firstCohortTarget"):
         _range(issues, scenario, path, 0.01, 1.0)
     for path in (

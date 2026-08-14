@@ -2,11 +2,18 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Any, Protocol
 
 from .frustration import clamp, evolve_passenger, logistic
+from .gate import build_gate_plan
 from .models import (
+    GateFrame,
+    GatePassengerState,
+    GatePlan,
+    GatePoint,
+    GateReplay,
     Passenger,
     PreparationResult,
     ProgressSample,
@@ -42,12 +49,34 @@ class StrictPreparationPolicy:
         )
 
 
+@dataclass(frozen=True)
+class CompletePreparationPolicy:
+    mode: str = "complete_preparation"
+
+    def evaluate(self, passengers: list[Passenger]) -> ReadinessState:
+        overall = sum(passenger.prep_correct for passenger in passengers) / max(
+            1, len(passengers)
+        )
+        first_cohort = min(passenger.prep_cohort for passenger in passengers)
+        members = [
+            passenger
+            for passenger in passengers
+            if passenger.prep_cohort == first_cohort
+        ]
+        first_ready = sum(passenger.prep_correct for passenger in members) / max(
+            1, len(members)
+        )
+        return ReadinessState(overall, first_ready, overall == 1.0)
+
+
 def readiness_policy_from_config(config: dict[str, Any]) -> PreparationPolicy:
     if config["mode"] == "strict_preparation":
         return StrictPreparationPolicy(
             readiness_target=config["readinessTarget"],
             first_cohort_target=config["firstCohortTarget"],
         )
+    if config["mode"] == "complete_preparation":
+        return CompletePreparationPolicy()
     raise ValueError(f"Unsupported preparation policy {config['mode']}")
 
 
@@ -73,12 +102,85 @@ def _snapshot(passengers: list[Passenger], time_seconds: float) -> ProgressSampl
     )
 
 
+def _distance(a: tuple[float, float], b: tuple[float, float]) -> float:
+    return math.hypot(a[0] - b[0], a[1] - b[1])
+
+
+def _gate_frame(
+    passengers: list[Passenger],
+    positions: dict[int, tuple[float, float]],
+    time_seconds: float,
+) -> GateFrame:
+    return GateFrame(
+        time_seconds=time_seconds,
+        mean_frustration=mean(passenger.frustration for passenger in passengers),
+        mean_accumulated_burden=mean(
+            passenger.frustration_burden for passenger in passengers
+        ),
+        passengers=[
+            GatePassengerState(
+                passenger_id=passenger.id,
+                x_m=round(positions[passenger.id][0], 3),
+                y_m=round(positions[passenger.id][1], 3),
+                state=passenger.prep_state,
+                frustration=round(passenger.frustration, 6),
+                frustration_burden=round(passenger.frustration_burden, 6),
+            )
+            for passenger in sorted(passengers, key=lambda item: item.id)
+        ],
+    )
+
+
+def _advance_gate_positions(
+    passengers: list[Passenger],
+    positions: dict[int, tuple[float, float]],
+    targets: dict[int, GatePoint],
+    dt: float,
+    gate_density: float,
+    collision_tolerance: float,
+    rng: RNG,
+) -> None:
+    passenger_by_id = {passenger.id: passenger for passenger in passengers}
+    moving_ids = [
+        passenger.id for passenger in passengers if passenger.prep_state == "moving"
+    ]
+    rng.shuffle(moving_ids)
+    protected = dict(positions)
+    for passenger_id in moving_ids:
+        passenger = passenger_by_id[passenger_id]
+        current = positions[passenger_id]
+        target_point = targets[passenger_id]
+        target = (target_point.x_m, target_point.y_m)
+        remaining = _distance(current, target)
+        if remaining <= 1e-9:
+            positions[passenger_id] = target
+            continue
+        speed = passenger.walking_speed_mps / (
+            1.0 + 1.8 * gate_density * gate_density
+        )
+        step = min(remaining, speed * dt)
+        ratio = step / remaining
+        proposed = (
+            current[0] + (target[0] - current[0]) * ratio,
+            current[1] + (target[1] - current[1]) * ratio,
+        )
+        protected.pop(passenger_id, None)
+        blocked = any(
+            _distance(proposed, other) < collision_tolerance
+            for other in protected.values()
+        )
+        accepted = current if blocked else proposed
+        positions[passenger_id] = accepted
+        protected[passenger_id] = accepted
+
+
 def simulate_preparation(
     passengers: list[Passenger],
     scenario: dict[str, Any],
     strategy: Strategy,
     rng: RNG,
     calibration: dict[str, Any],
+    gate_plan: GatePlan | None = None,
 ) -> PreparationResult:
     config = scenario["preparation"]
     threshold = scenario["metrics"]["frustrationThreshold"]
@@ -93,6 +195,16 @@ def simulate_preparation(
     total_corrections = 0
     time_seconds = 0.0
     dt = 1.0
+    plan = gate_plan or build_gate_plan(
+        passengers, scenario, strategy, rng.fork(811)
+    )
+    movement_rng = rng.fork(812)
+    positions = {
+        passenger_id: (point.x_m, point.y_m)
+        for passenger_id, point in plan.start_positions.items()
+    }
+    collision_tolerance = 0.005
+    replay_sample_seconds = float(config["replaySampleSeconds"])
 
     for passenger in passengers:
         stand_probability = clamp(
@@ -105,15 +217,17 @@ def simulate_preparation(
         )
         passenger.prep_state = "standing" if rng.boolean(stand_probability) else "waiting"
         passenger.prep_correct = False
-        passenger.prep_distance_m = max(
-            2.0,
-            config["averageStartDistanceM"]
-            * clamp(1.0 + rng.normal(0, 0.35), 0.35, 1.8),
+        target = plan.queue_slots[passenger.id]
+        passenger.prep_distance_m = _distance(
+            positions[passenger.id], (target.x_m, target.y_m)
         )
         passenger.move_remaining_s = 0.0
         passenger.correct_remaining_s = 0.0
 
+    gate_frames = [_gate_frame(passengers, positions, 0.0)]
+
     while time_seconds < config["maxPreparationSeconds"]:
+        events_before_step = len(events)
         staged_count = sum(passenger.prep_state == "staged" for passenger in passengers)
         moving_count = sum(passenger.prep_state in {"moving", "correcting"} for passenger in passengers)
         standing_count = sum(passenger.prep_state != "waiting" for passenger in passengers)
@@ -130,6 +244,15 @@ def simulate_preparation(
             if passenger.prep_state == "staged"
         ]
         staged_mean_frustration = mean(staged_frustrations or [passenger.frustration for passenger in passengers])
+        _advance_gate_positions(
+            passengers,
+            positions,
+            plan.queue_slots,
+            dt,
+            gate_density,
+            collision_tolerance,
+            movement_rng,
+        )
 
         for passenger in passengers:
             if passenger.prep_state == "staged":
@@ -171,10 +294,6 @@ def simulate_preparation(
                 continue
 
             if passenger.prep_state == "moving":
-                speed = passenger.walking_speed_mps / (1.0 + 1.8 * gate_density * gate_density)
-                passenger.move_remaining_s -= dt * max(
-                    0.2, speed / max(0.2, passenger.walking_speed_mps)
-                )
                 evolve_passenger(
                     passenger,
                     dt,
@@ -184,7 +303,10 @@ def simulate_preparation(
                     calibration,
                     threshold,
                 )
-                if passenger.move_remaining_s <= 0:
+                target = plan.queue_slots[passenger.id]
+                if _distance(
+                    positions[passenger.id], (target.x_m, target.y_m)
+                ) <= 1e-9:
                     passenger.move_remaining_s = 0.0
                     correct_probability = clamp(
                         0.985
@@ -270,6 +392,13 @@ def simulate_preparation(
         if time_seconds % sample_seconds == 0:
             history.append(_snapshot(passengers, time_seconds))
         readiness = policy.evaluate(passengers)
+        should_record_gate = (
+            time_seconds % replay_sample_seconds == 0
+            or len(events) != events_before_step
+            or readiness.ready
+        )
+        if should_record_gate and gate_frames[-1].time_seconds != time_seconds:
+            gate_frames.append(_gate_frame(passengers, positions, time_seconds))
         if readiness.ready:
             if history[-1].time_seconds != time_seconds:
                 history.append(_snapshot(passengers, time_seconds))
@@ -281,11 +410,14 @@ def simulate_preparation(
                 readiness,
                 complexity,
                 False,
+                GateReplay(plan.layout, plan.slots, gate_frames),
             )
 
     readiness = policy.evaluate(passengers)
     if history[-1].time_seconds != time_seconds:
         history.append(_snapshot(passengers, time_seconds))
+    if gate_frames[-1].time_seconds != time_seconds:
+        gate_frames.append(_gate_frame(passengers, positions, time_seconds))
     return PreparationResult(
         time_seconds,
         history,
@@ -294,4 +426,5 @@ def simulate_preparation(
         readiness,
         complexity,
         True,
+        GateReplay(plan.layout, plan.slots, gate_frames),
     )
