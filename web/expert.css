@@ -1,0 +1,15 @@
+.expert-body { padding: 12px 0 44px; color: var(--ink-muted); }
+.expert-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 34px; margin-block: 34px; }
+.expert-grid section { min-width: 0; padding-top: 17px; border-top: 1px solid var(--rule); }
+.expert-grid h3 { color: var(--navy); font-family: Georgia, serif; font-size: 20px; font-weight: 500; }
+.expert-grid svg { display: block; width: 100%; height: auto; min-height: 220px; }
+.provenance-badge { display: inline-flex; padding: 2px 7px; border: 1px solid currentColor; border-radius: 999px; font-size: 9px; font-weight: 800; text-transform: uppercase; }
+.provenance-badge[data-category="calibrated"] { color: #226944; }
+.provenance-badge[data-category="literature"] { color: #2b5c96; }
+.provenance-badge[data-category="user"] { color: #65509d; }
+.provenance-badge[data-category="operational"] { color: #7a5a18; }
+.provenance-badge[data-category="provisional"] { color: #943f35; }
+
+@media (max-width: 780px) {
+  .expert-grid { grid-template-columns: 1fr; }
+}

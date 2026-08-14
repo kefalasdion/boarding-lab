@@ -1,0 +1,74 @@
+.race-section { padding-block: 34px 58px; background: var(--navy); color: white; }
+.race-heading { display: flex; align-items: end; justify-content: space-between; gap: 30px; }
+.race-heading .eyebrow { color: #7ebaff; }
+.race-heading h2 { margin-bottom: 0; }
+.race-status { max-width: 330px; margin: 0; color: #afbece; text-align: right; font-size: 12px; }
+
+.clock-dock { position: sticky; top: 0; z-index: 15; display: grid; grid-template-columns: auto minmax(320px, 1fr); align-items: center; gap: 36px; width: min(calc(100% - 48px), var(--content)); margin: 32px auto 18px; padding: 13px 18px; border: 1px solid #445873; border-radius: var(--radius); background: rgba(16, 35, 63, .96); box-shadow: 0 12px 30px rgba(0,0,0,.18); backdrop-filter: blur(9px); }
+.master-clock-wrap { display: grid; grid-template-columns: auto auto; align-items: baseline; column-gap: 16px; }
+.master-clock-wrap > span { color: #aebccd; font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+#master-clock { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 31px; font-weight: 750; font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
+.master-clock-wrap small { grid-column: 1 / -1; color: #8294aa; font-size: 9px; }
+.playback-controls { display: grid; grid-template-columns: auto auto minmax(100px, 1fr) auto; align-items: center; gap: 10px; }
+.playback-controls .button { min-width: 88px; }
+.playback-controls .button-quiet { border-color: #5b6f88; color: white; }
+.scrubber-label input { width: 100%; accent-color: #70b3ff; }
+.speed-label { display: flex; align-items: center; gap: 7px; color: #aebccd; font-size: 10px; }
+.speed-label select { min-height: 44px; border: 1px solid #5b6f88; border-radius: 999px; padding: 7px 28px 7px 12px; background: #182e4b; color: white; }
+
+.race-stage { position: relative; width: min(calc(100% - 24px), 1480px); margin-inline: auto; border-block: 1px solid #40536e; background: #142a47; }
+.race-axis { display: grid; grid-template-columns: 34% 32% 34%; padding: 10px 22px 9px 190px; border-bottom: 1px solid #40536e; color: #8fa1b7; font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.race-axis span:nth-child(2) { text-align: center; }
+.race-axis span:last-child { text-align: right; }
+.lane-key { position: absolute; inset: 38px auto 0 0; z-index: 2; display: grid; grid-template-rows: repeat(3, 1fr); width: 180px; padding: 10px 18px; pointer-events: none; }
+.lane-key div { display: flex; flex-direction: column; justify-content: center; border-bottom: 1px solid rgba(255,255,255,.08); }
+.lane-key div:last-child { border-bottom: 0; }
+.lane-key strong { font-family: Georgia, serif; font-size: 19px; font-weight: 500; }
+.lane-key span { margin-top: 2px; color: #91a4bb; font-size: 10px; }
+#race-canvas { display: block; width: 100%; height: auto; min-height: 520px; }
+
+.race-support { display: grid; grid-template-columns: 1fr minmax(270px, .65fr); gap: 30px; padding-top: 24px; }
+.frustration-legend { align-self: start; }
+.legend-title { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 10px; }
+.legend-title span { color: #8fa1b7; font-size: 10px; }
+.legend-ramp { display: grid; grid-template-columns: repeat(5, 1fr); height: 8px; overflow: hidden; border-radius: 999px; }
+.legend-ramp i:nth-child(1) { background: var(--frustration-calm); }
+.legend-ramp i:nth-child(2) { background: var(--frustration-low); }
+.legend-ramp i:nth-child(3) { background: var(--frustration-raised); }
+.legend-ramp i:nth-child(4) { background: var(--frustration-high); }
+.legend-ramp i:nth-child(5) { background: var(--frustration-critical); }
+.legend-labels { display: grid; grid-template-columns: repeat(5, 1fr); margin-top: 6px; color: #91a4bb; font-size: 9px; }
+.legend-labels span:nth-child(n+2):nth-child(-n+4) { text-align: center; }
+.legend-labels span:last-child { text-align: right; }
+.passenger-inspector { min-height: 96px; padding: 14px 16px; border-left: 2px solid #5a7595; background: rgba(255,255,255,.035); }
+.inspector-index { display: block; margin-bottom: 5px; color: #91a4bb; font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.passenger-inspector p { margin: 5px 0 0; color: #aebccd; font-size: 10px; }
+.race-section .table-wrap { margin-top: 30px; }
+.race-live-table { min-width: 1250px; color: #dce5ee; }
+.race-live-table caption { color: #91a4bb; }
+.race-live-table th, .race-live-table td { border-color: #40536e; }
+.race-live-table thead th { color: #91a4bb; }
+
+@media (max-width: 780px) {
+  .race-heading { display: block; }
+  .race-status { margin-top: 15px; text-align: left; }
+  .clock-dock { grid-template-columns: 1fr; gap: 10px; width: calc(100% - 16px); margin-top: 24px; padding: 10px; }
+  .master-clock-wrap { grid-template-columns: auto 1fr; }
+  #master-clock { justify-self: end; font-size: 27px; }
+  .playback-controls { grid-template-columns: 1fr 1fr auto; }
+  .scrubber-label { grid-column: 1 / -1; grid-row: 1; }
+  .speed-label { justify-self: end; }
+  .race-stage { width: 100%; }
+  .race-axis { display: none; }
+  .lane-key { inset: 0 auto 0 0; width: 120px; padding: 6px 8px; }
+  .lane-key strong { font-size: 14px; }
+  .lane-key span { font-size: 8px; }
+  #race-canvas { min-height: 680px; }
+  .race-support { grid-template-columns: 1fr; }
+}
+
+@media print {
+  .race-section { background: white; color: black; }
+  .race-stage { background: white; }
+  .lane-key span, .race-status, .legend-title span { color: #444; }
+}

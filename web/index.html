@@ -4,243 +4,201 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light">
-    <title>Passenger Boarding Simulator</title>
+    <meta name="theme-color" content="#10233f">
+    <title>Boarding Lab — From gate preparation to the last seat</title>
+    <meta name="description" content="Compare Random, Back-to-front and Strict Steffen boarding from the first preparation instruction to the last passenger seated.">
     <link rel="stylesheet" href="/styles.css">
-    <script type="module" src="/app.js"></script>
+    <link rel="stylesheet" href="/race.css">
+    <link rel="stylesheet" href="/expert.css">
   </head>
   <body>
-    <a class="skip-link" href="#results">Skip to simulation results</a>
-    <header class="app-header">
-      <div>
-        <p class="eyebrow">Research simulator · V2 model boundary</p>
-        <h1>Passenger Boarding</h1>
-      </div>
-      <div class="header-status">
-        <span class="status-dot" aria-hidden="true"></span>
-        <span id="run-status" aria-live="polite">Loading model…</span>
-      </div>
+    <a class="skip-link" href="#race">Skip to the boarding race</a>
+
+    <header class="site-header">
+      <a class="wordmark" href="#top" aria-label="Boarding Lab home">
+        <span class="wordmark-mark" aria-hidden="true">BL</span>
+        <span>Boarding Lab</span>
+      </a>
+      <p>By Dennis Kefalas</p>
     </header>
 
-    <div class="app-shell">
-      <aside class="scenario-panel" aria-label="Scenario controls">
-        <div class="panel-heading">
-          <span class="section-number">00</span>
+    <main id="top">
+      <section class="premise content-width" aria-labelledby="page-title">
+        <p class="eyebrow">A gate-to-seat simulation</p>
+        <h1 id="page-title">The fastest boarding line may be the hardest one to form.</h1>
+        <p class="standfirst">Three methods. The same 180 passengers. One clock that begins when preparation is announced—not when the aircraft door opens.</p>
+        <div class="premise-note" role="note">
+          <span aria-hidden="true">!</span>
+          <p>Passenger frustration is <strong>model-predicted</strong> and <strong>provisional</strong>. It supports research exploration, not operational claims.</p>
+        </div>
+      </section>
+
+      <section id="race" class="race-section" aria-labelledby="race-title">
+        <div class="race-heading content-width">
           <div>
-            <h2>Scenario</h2>
-            <p>Inputs at the preparation announcement.</p>
+            <p class="eyebrow">Live comparison</p>
+            <h2 id="race-title">From scattered gate to last seat</h2>
+          </div>
+          <p id="race-status" class="race-status" aria-live="polite">Loading the representative comparison…</p>
+        </div>
+
+        <div class="clock-dock" aria-label="Playback controls">
+          <div class="master-clock-wrap">
+            <span>Master clock</span>
+            <output id="master-clock" aria-live="off">00:00</output>
+            <small>T=0 preparation announcement</small>
+          </div>
+          <div class="playback-controls">
+            <button id="play-toggle" class="button button-primary" type="button" aria-pressed="false">
+              <span aria-hidden="true">▶</span> Play
+            </button>
+            <button id="replay-button" class="button button-quiet" type="button">Replay</button>
+            <label class="scrubber-label" for="timeline-scrubber">
+              <span class="visually-hidden">Simulation time</span>
+              <input id="timeline-scrubber" type="range" min="0" max="1" step="1" value="0">
+            </label>
+            <label class="speed-label" for="playback-speed">
+              <span>Speed</span>
+              <select id="playback-speed">
+                <option value="0.5">0.5×</option>
+                <option value="1" selected>1×</option>
+                <option value="2">2×</option>
+                <option value="4">4×</option>
+              </select>
+            </label>
           </div>
         </div>
 
-        <form id="scenario-form">
-          <fieldset>
-            <legend>Method</legend>
-            <label for="strategy">Boarding strategy</label>
-            <select id="strategy" name="strategy"></select>
-
-            <div class="control-pair">
-              <div>
-                <label for="access-mode">Aircraft access</label>
-                <select id="access-mode" name="access-mode">
-                  <option value="bridge">Jet bridge</option>
-                  <option value="bus">Remote stand bus</option>
-                </select>
-              </div>
-              <div>
-                <label for="service-model">Row service</label>
-                <select id="service-model" name="service-model">
-                  <option value="field_calibrated">Field model</option>
-                  <option value="user_occupancy_rule">User load rule</option>
-                </select>
-              </div>
-            </div>
-          </fieldset>
-
-          <fieldset>
-            <legend>T=0 inputs</legend>
-            <div class="range-control">
-              <div><label for="delay-minutes">Current delay</label><output id="delay-output">20 min</output></div>
-              <input id="delay-minutes" type="range" min="0" max="180" step="5" value="20">
-            </div>
-            <div class="range-control">
-              <div><label for="prior-gate-wait">Prior gate wait</label><output id="gate-wait-output">35 min</output></div>
-              <input id="prior-gate-wait" type="range" min="0" max="180" step="5" value="35">
-            </div>
-            <div class="range-control">
-              <div><label for="delay-updates">Previous delay updates</label><output id="updates-output">1</output></div>
-              <input id="delay-updates" type="range" min="0" max="5" step="1" value="1">
-            </div>
-          </fieldset>
-
-          <fieldset>
-            <legend>Population & policy</legend>
-            <div class="range-control">
-              <div><label for="family-share">Family/group passengers</label><output id="family-output">30%</output></div>
-              <input id="family-share" type="range" min="0" max="60" step="5" value="30">
-            </div>
-            <div class="range-control">
-              <div><label for="bag-share">Passengers with hand luggage</label><output id="bag-output">75%</output></div>
-              <input id="bag-share" type="range" min="20" max="100" step="5" value="75">
-            </div>
-            <div class="range-control">
-              <div><label for="readiness-target">Overall readiness target</label><output id="readiness-output">90%</output></div>
-              <input id="readiness-target" type="range" min="70" max="100" step="5" value="90">
-            </div>
-          </fieldset>
-
-          <fieldset>
-            <legend>Reproducibility</legend>
-            <div class="control-pair">
-              <div>
-                <label for="seed">Flight seed</label>
-                <input id="seed" type="number" min="0" max="4294967295" value="20260813">
-              </div>
-              <div>
-                <label for="monte-carlo-runs">Runs / strategy</label>
-                <input id="monte-carlo-runs" type="number" min="2" max="30" value="6">
-              </div>
-            </div>
-          </fieldset>
-
-          <div class="form-actions">
-            <button id="run-flight" class="primary-action" type="submit">Run flight</button>
-            <button id="compare-strategies" class="secondary-action" type="button">Compare strategies</button>
+        <div class="race-stage">
+          <div class="race-axis" aria-hidden="true">
+            <span>Gate</span><span>Queue &amp; access</span><span>Aircraft</span>
           </div>
-        </form>
+          <div class="lane-key" aria-hidden="true">
+            <div><strong>Random</strong><span>One loose queue</span></div>
+            <div><strong>Back-to-front</strong><span>Six row zones</span></div>
+            <div><strong>Strict Steffen</strong><span>Theoretical sequence</span></div>
+          </div>
+          <canvas id="race-canvas" width="1440" height="690" aria-label="Animated comparison of three passenger boarding strategies" aria-hidden="true"></canvas>
+        </div>
 
-        <p class="keyboard-note">Every run uses the seed shown above. No hidden random seed is generated.</p>
-      </aside>
+        <div class="race-support content-width">
+          <div id="frustration-legend" class="frustration-legend" aria-label="Model-predicted frustration scale">
+            <div class="legend-title"><strong>Live frustration index</strong><span>0–100 · current, not accumulated</span></div>
+            <div class="legend-ramp" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="legend-labels"><span>Calm</span><span>Low</span><span>Raised</span><span>High</span><span>Critical</span></div>
+          </div>
+          <aside id="passenger-inspector" class="passenger-inspector" aria-live="polite">
+            <span class="inspector-index">Passenger inspector</span>
+            <strong>Select or tap a passenger</strong>
+            <p>Seat, family group, current phase, live frustration and accumulated burden will appear here.</p>
+          </aside>
+        </div>
 
-      <main id="results" class="workspace" tabindex="-1">
-        <section class="model-warning" aria-label="Model validation status">
-          <span class="warning-mark" aria-hidden="true">!</span>
+        <div class="table-wrap content-width">
+          <table id="race-live-table" class="race-live-table">
+            <caption>Live text alternative for the three boarding lanes</caption>
+            <thead>
+              <tr>
+                <th scope="col">Strategy</th><th scope="col">Phase</th><th scope="col">Prepared</th><th scope="col">Entered</th><th scope="col">Seated</th><th scope="col">Live frustration</th><th scope="col">Preparation finished</th><th scope="col">Boarding started</th><th scope="col">Boarding finished</th><th scope="col">During preparation</th><th scope="col">During embarkation</th><th scope="col">Total burden</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr id="lane-random-live" aria-live="polite"><th scope="row">Random</th><td>Waiting</td><td>0/180</td><td>0/180</td><td>0/180</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+              <tr id="lane-back-to-front-live" aria-live="polite"><th scope="row">Back-to-front</th><td>Waiting</td><td>0/180</td><td>0/180</td><td>0/180</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+              <tr id="lane-strict-steffen-live" aria-live="polite"><th scope="row">Strict Steffen</th><td>Waiting</td><td>0/180</td><td>0/180</td><td>0/180</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="results" class="results-section content-width" aria-labelledby="result-headline">
+        <p class="eyebrow">What the whole journey changes</p>
+        <h2 id="result-headline">The result will appear when all three passengers groups finish.</h2>
+        <p id="result-summary" class="result-summary">The conclusion uses the complete T=0-to-last-seat clock. A timed-out strategy never creates a winner.</p>
+
+        <div id="result-comparison" class="result-comparison" aria-live="polite"></div>
+
+        <div class="table-wrap result-table-wrap">
+          <table id="timing-table" class="timing-table">
+            <caption>Authoritative timing and model-predicted frustration results</caption>
+            <thead><tr><th scope="col">Measure</th><th scope="col">Random</th><th scope="col">Back-to-front</th><th scope="col">Strict Steffen</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Preparation finished at</th><td>Unavailable</td><td>Unavailable</td><td>Unavailable</td></tr>
+              <tr><th scope="row">Boarding started at</th><td>Unavailable</td><td>Unavailable</td><td>Unavailable</td></tr>
+              <tr><th scope="row">Boarding finished at</th><td>Unavailable</td><td>Unavailable</td><td>Unavailable</td></tr>
+              <tr><th scope="row">Frustration accumulated during preparation <small>model-predicted · F·min</small></th><td>Unavailable</td><td>Unavailable</td><td>Unavailable</td></tr>
+              <tr><th scope="row">Frustration accumulated during embarkation <small>model-predicted · F·min</small></th><td>Unavailable</td><td>Unavailable</td><td>Unavailable</td></tr>
+              <tr><th scope="row">Total frustration burden <small>model-predicted · F·min</small></th><td>Unavailable</td><td>Unavailable</td><td>Unavailable</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="heatmap-layout">
           <div>
-            <strong>Frustration outputs are provisional.</strong>
-            <p>The aircraft mechanics have published model support. Gate behaviour and passenger frustration cannot be called validated until Validation Plan Layer 4 passes.</p>
+            <div class="section-label"><span>Passenger outcome map</span><strong>By aircraft seat</strong></div>
+            <canvas id="heatmap" width="980" height="340" aria-label="Passenger frustration heatmap by aircraft seat"></canvas>
           </div>
-        </section>
+          <div id="heatmap-table" class="visually-hidden" aria-label="Text alternative for the passenger outcome heatmap"></div>
+        </div>
 
-        <section class="phase-story" aria-label="Simulation boundary and phases">
-          <article id="part-1" class="phase-block is-active">
-            <span class="phase-index">01</span>
-            <div>
-              <p class="phase-kicker">At the announcement</p>
-              <h2>Passenger state at T=0</h2>
-              <p>Earlier experience enters only as initial state.</p>
+        <details id="evidence-disclosure" class="evidence-disclosure">
+          <summary>How confidently can I read this result?</summary>
+          <div>
+            <p>Aircraft movement uses published and literature-supported inputs. Gate geometry, preparation behavior and frustration coefficients remain provisional pending validation.</p>
+            <p>“Accumulated during preparation” and “accumulated during embarkation” attribute burden to time periods. They do not prove that either phase caused the feeling.</p>
+          </div>
+        </details>
+      </section>
+
+      <section id="scenario-controls" class="scenario-section content-width" aria-labelledby="scenario-title">
+        <div class="section-intro">
+          <p class="eyebrow">Change the shared flight</p>
+          <h2 id="scenario-title">Run your own comparison</h2>
+          <p>Every method receives the same passenger manifest and the same access conditions. Only its organization strategy changes.</p>
+        </div>
+        <form id="scenario-form" class="scenario-form">
+          <label for="seed"><span>Seed</span><input id="seed" name="seed" type="number" min="0" max="4294967295" value="20260813"></label>
+          <label for="delay-minutes"><span>Current delay</span><output id="delay-output">20 min</output><input id="delay-minutes" type="range" min="0" max="180" step="5" value="20"></label>
+          <label for="prior-gate-wait"><span>Prior gate wait</span><output id="gate-wait-output">35 min</output><input id="prior-gate-wait" type="range" min="0" max="180" step="5" value="35"></label>
+          <label for="family-share"><span>Family/group share</span><output id="family-output">30%</output><input id="family-share" type="range" min="0" max="60" step="5" value="30"></label>
+          <label for="bag-share"><span>Hand-luggage share</span><output id="bag-output">75%</output><input id="bag-share" type="range" min="20" max="100" step="5" value="75"></label>
+          <button id="run-comparison" class="button button-primary" type="submit">Run the three-way race</button>
+        </form>
+      </section>
+
+      <section class="expert-section content-width" aria-labelledby="expert-title">
+        <details id="expert-workspace">
+          <summary><span><small>Research workspace</small><strong id="expert-title">Open detailed model analysis</strong></span><span aria-hidden="true">+</span></summary>
+          <div class="expert-body">
+            <p>Single-flight controls, preparation and embarkation trajectories, passenger distributions, Monte Carlo ranges and parameter provenance remain available here.</p>
+            <div id="expert-controls"></div>
+            <div class="expert-grid">
+              <section><h3>Preparation trajectory</h3><svg id="preparation-chart" viewBox="0 0 700 300" role="img" aria-label="Preparation trajectory"></svg></section>
+              <section><h3>Embarkation trajectory</h3><svg id="embarkation-chart" viewBox="0 0 700 300" role="img" aria-label="Embarkation trajectory"></svg></section>
+              <section><h3>Frustration burden</h3><svg id="burden-histogram" viewBox="0 0 700 280" role="img" aria-label="Passenger burden distribution"></svg></section>
+              <section><h3>Peak frustration</h3><svg id="peak-histogram" viewBox="0 0 700 280" role="img" aria-label="Passenger peak frustration distribution"></svg></section>
             </div>
-            <strong id="part-1-value">180 passengers</strong>
-          </article>
-          <article id="part-2" class="phase-block">
-            <span class="phase-index">02</span>
-            <div>
-              <p class="phase-kicker">Method-dependent</p>
-              <h2>Preparation</h2>
-              <p>Decision, movement, staging and correction.</p>
-            </div>
-            <strong id="part-2-value">—</strong>
-          </article>
-          <article id="part-3" class="phase-block">
-            <span class="phase-index">03</span>
-            <div>
-              <p class="phase-kicker">Until the last seat</p>
-              <h2>Embarkation</h2>
-              <p>Bridge/bus, door streams and cabin cells.</p>
-            </div>
-            <strong id="part-3-value">—</strong>
-          </article>
-        </section>
-
-        <section class="metric-band" aria-label="Primary timings">
-          <div><span>Total · T=0 to last seat</span><strong id="metric-total">—</strong></div>
-          <div><span>Preparation</span><strong id="metric-preparation">—</strong></div>
-          <div><span>Embarkation</span><strong id="metric-embarkation">—</strong></div>
-          <div><span>Cabin boarding</span><strong id="metric-cabin">—</strong></div>
-        </section>
-
-        <section class="analysis-section">
-          <div class="section-heading">
-            <span class="section-number">01</span>
-            <div><h2>Initial passenger state</h2><p>Each mark is one person. Purple rings identify family/group members.</p></div>
-            <div id="t0-summary" class="section-summary">Awaiting run</div>
+            <div class="table-wrap"><table id="monte-carlo-table"><caption>Monte Carlo comparison</caption><tbody></tbody></table></div>
+            <div class="table-wrap"><table id="provenance-table"><caption>Parameter provenance</caption><tbody></tbody></table></div>
           </div>
-          <div id="t0-population" class="passenger-field" role="img" aria-label="Passenger initial-frustration distribution"></div>
-          <div class="legend-row">
-            <span><i class="legend-gradient" aria-hidden="true"></i>Lower to higher initial frustration</span>
-            <span><i class="legend-family" aria-hidden="true"></i>Family/group passenger</span>
-          </div>
-        </section>
+        </details>
+      </section>
 
-        <section class="two-column-analysis">
-          <article class="analysis-section">
-            <div class="section-heading compact">
-              <span class="section-number">02</span>
-              <div><h2>Preparation progress</h2><p>Correctly staged passengers and correction events.</p></div>
-            </div>
-            <svg id="preparation-chart" class="data-chart" viewBox="0 0 700 300" role="img" aria-label="Preparation progress over time"></svg>
-            <p id="preparation-caption" class="chart-caption">Awaiting run</p>
-          </article>
-          <article class="analysis-section">
-            <div class="section-heading compact">
-              <span class="section-number">03</span>
-              <div><h2>Embarkation progress</h2><p>Door arrivals, aircraft entries and passengers seated.</p></div>
-            </div>
-            <svg id="embarkation-chart" class="data-chart" viewBox="0 0 700 300" role="img" aria-label="Embarkation progress over time"></svg>
-            <p id="embarkation-caption" class="chart-caption">Awaiting run</p>
-          </article>
-        </section>
+      <section id="sources" class="method-section content-width" aria-labelledby="method-title">
+        <div>
+          <p class="eyebrow">Method &amp; sources</p>
+          <h2 id="method-title">What this adds to the boarding-only clock</h2>
+        </div>
+        <div class="method-copy">
+          <p>The three-way presentation is inspired by Adam Jacobs’s visualization of Random, Back-to-front and Strict Steffen boarding. That work starts the visible race at boarding; Boarding Lab extends the clock backward to the first preparation instruction.</p>
+          <p>This standalone research simulator is deterministic for a given seed. Its source notes and validation boundaries distinguish published aircraft mechanics from provisional preparation and frustration inputs.</p>
+          <nav aria-label="Research links"><a href="/SOURCES.md">Sources</a><a href="/VALIDATION_PLAN.md">Validation plan</a><a href="/RESULT_SCHEMA.md">Result schema</a></nav>
+        </div>
+      </section>
+    </main>
 
-        <section class="analysis-section trajectory-section">
-          <div class="section-heading">
-            <span class="section-number">F</span>
-            <div><h2>Frustration trajectory</h2><p>Mean and P90 across passengers still in the boarding process.</p></div>
-            <div id="trajectory-summary" class="section-summary">Provisional coefficients</div>
-          </div>
-          <svg id="frustration-chart" class="data-chart large" viewBox="0 0 1200 380" role="img" aria-label="Mean and P90 frustration trajectory"></svg>
-          <div class="legend-row"><span><i class="legend-line mean" aria-hidden="true"></i>Mean frustration</span><span><i class="legend-line p90" aria-hidden="true"></i>P90 frustration</span><span><i class="legend-phase" aria-hidden="true"></i>Preparation end</span></div>
-        </section>
-
-        <section class="two-column-analysis distribution-row">
-          <article class="analysis-section">
-            <div class="section-heading compact"><span class="section-number">B</span><div><h2>Frustration burden</h2><p>Cumulative F·minutes per passenger.</p></div></div>
-            <svg id="burden-histogram" class="data-chart histogram" viewBox="0 0 700 280" role="img" aria-label="Frustration burden distribution"></svg>
-            <p id="burden-caption" class="chart-caption">Awaiting run</p>
-          </article>
-          <article class="analysis-section">
-            <div class="section-heading compact"><span class="section-number">P</span><div><h2>Peak frustration</h2><p>Highest modeled frustration reached by each passenger.</p></div></div>
-            <svg id="peak-histogram" class="data-chart histogram" viewBox="0 0 700 280" role="img" aria-label="Peak frustration distribution"></svg>
-            <p id="peak-caption" class="chart-caption">Awaiting run</p>
-          </article>
-        </section>
-
-        <section class="analysis-section monte-carlo-section">
-          <div class="section-heading">
-            <span class="section-number">MC</span>
-            <div><h2>Monte Carlo comparison</h2><p>Population-seed uncertainty. Timed-out and invalid runs never enter numeric summaries.</p></div>
-            <div id="comparison-status" class="section-summary" aria-live="polite">Not run</div>
-          </div>
-          <div class="table-scroll">
-            <table id="monte-carlo-table">
-              <thead>
-                <tr><th>Strategy</th><th>Access</th><th>Valid</th><th>Timed out</th><th>Invalid</th><th>Total mean</th><th>P10–P90</th><th>95% mean interval</th><th>Prep mean</th><th>Cabin mean</th><th>Burden mean</th></tr>
-              </thead>
-              <tbody><tr><td colspan="11" class="empty-cell">Run a strategy comparison to populate uncertainty ranges.</td></tr></tbody>
-            </table>
-          </div>
-        </section>
-
-        <section class="analysis-section provenance-section">
-          <div class="section-heading">
-            <span class="section-number">P</span>
-            <div><h2>Parameter provenance</h2><p>Every configurable scenario and behaviour value has an evidence status.</p></div>
-            <label class="filter-label" for="provenance-filter">Show <select id="provenance-filter"><option value="all">All parameters</option><option value="calibrated">Calibrated</option><option value="literature">Literature</option><option value="user">User</option><option value="operational">Operational</option><option value="provisional">Provisional</option></select></label>
-          </div>
-          <div class="badge-key" aria-label="Provenance categories"><span class="provenance-badge" data-category="calibrated">calibrated</span><span class="provenance-badge" data-category="literature">literature</span><span class="provenance-badge" data-category="user">user</span><span class="provenance-badge" data-category="operational">operational</span><span class="provenance-badge" data-category="provisional">provisional</span></div>
-          <div class="table-scroll provenance-scroll">
-            <table id="provenance-table"><thead><tr><th>Parameter</th><th>Status</th><th>Default</th><th>Source / note</th></tr></thead><tbody></tbody></table>
-          </div>
-        </section>
-
-        <footer><span>Passenger Boarding Simulator · schema <b id="schema-version">—</b></span><span>Local, deterministic and dependency-free</span></footer>
-      </main>
-    </div>
+    <footer class="site-footer content-width">
+      <strong>Boarding Lab</strong><span>By Dennis Kefalas</span><span id="model-version">Model loading…</span>
+    </footer>
   </body>
 </html>
