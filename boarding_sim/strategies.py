@@ -22,6 +22,25 @@ def _zone_back_to_front(row: int) -> int:
     return (30 - row) // 5
 
 
+def strict_steffen_key(passenger: Passenger) -> tuple[int, int, int, int]:
+    return (
+        _seat_group(passenger.seat),
+        passenger.row % 2,
+        _side(passenger.seat),
+        -passenger.row,
+    )
+
+
+def strict_steffen_rank(passenger: Passenger) -> float:
+    seat_group, parity, side, descending_row = strict_steffen_key(passenger)
+    return float(
+        seat_group * 100_000
+        + parity * 10_000
+        + side * 1_000
+        + descending_row
+    )
+
+
 @dataclass(frozen=True)
 class Strategy:
     id: str
@@ -32,6 +51,7 @@ class Strategy:
     rank: Callable[[Passenger, float], float]
     door: Callable[[Passenger], str]
     preserve_seat_door: bool = False
+    companion_policy: str = "preserve"
 
 
 STRATEGIES: dict[str, Strategy] = {
@@ -64,10 +84,20 @@ STRATEGIES: dict[str, Strategy] = {
         lambda _p: "front",
     ),
     "steffen_companion": Strategy(
-        "steffen_companion", "Steffen-style · companion compatible", "bridge", 12,
+        "steffen_companion", "Practical Steffen · companions together", "bridge", 12,
         lambda p: _seat_group(p.seat) * 4 + _side(p.seat) * 2 + (p.row % 2),
         lambda p, _random_key: (_seat_group(p.seat) * 4 + _side(p.seat) * 2 + (p.row % 2)) * 1000 + (31 - p.row),
         lambda _p: "front",
+    ),
+    "strict_steffen": Strategy(
+        "strict_steffen",
+        "Strict Steffen · theoretical",
+        "bridge",
+        12,
+        lambda p: _seat_group(p.seat) * 4 + (p.row % 2) * 2 + _side(p.seat),
+        lambda p, _random_key: strict_steffen_rank(p),
+        lambda _p: "front",
+        companion_policy="separate",
     ),
     "split_wilma_two_door": Strategy(
         "split_wilma_two_door", "Split doors + A/F → B/E → C/D", "bus", 6,
@@ -95,12 +125,13 @@ def strategy_catalog() -> list[dict[str, object]]:
             "name": strategy.name,
             "recommendedAccess": strategy.access_recommended,
             "preparationCohorts": strategy.prep_cohorts,
+            "companionPolicy": strategy.companion_policy,
         }
         for strategy in STRATEGIES.values()
     ]
 
 
-def apply_companion_compatibility(
+def apply_companion_policy(
     passengers: list[Passenger], strategy: Strategy, rng: RNG
 ) -> list[Passenger]:
     families: dict[int, list[Passenger]] = {}
@@ -112,6 +143,21 @@ def apply_companion_compatibility(
         passenger.prep_cohort = passenger.raw_cohort
         if passenger.family_id:
             families.setdefault(passenger.family_id, []).append(passenger)
+
+    if strategy.companion_policy == "separate":
+        ordered = sorted(passengers, key=lambda passenger: (passenger.raw_rank, passenger.id))
+        positions = {passenger.id: index for index, passenger in enumerate(ordered)}
+        for index, passenger in enumerate(ordered):
+            passenger.boarding_rank = float(index)
+        for members in families.values():
+            member_positions = sorted(positions[member.id] for member in members)
+            contiguous = member_positions == list(
+                range(member_positions[0], member_positions[0] + len(members))
+            )
+            separated = len({member.raw_cohort for member in members}) > 1 or not contiguous
+            for member in members:
+                member.companion_override = separated
+        return passengers
 
     for members in families.values():
         cohort = min(member.raw_cohort for member in members)
@@ -139,3 +185,9 @@ def apply_companion_compatibility(
             member.boarding_rank = float(next_rank)
             next_rank += 1
     return passengers
+
+
+def apply_companion_compatibility(
+    passengers: list[Passenger], strategy: Strategy, rng: RNG
+) -> list[Passenger]:
+    return apply_companion_policy(passengers, strategy, rng)

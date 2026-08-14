@@ -7,7 +7,7 @@ from typing import Any
 from .frustration import clamp, frustration_from_load, initial_stress_load
 from .models import Passenger
 from .prng import RNG
-from .strategies import Strategy, apply_companion_compatibility
+from .strategies import Strategy, apply_companion_policy
 
 SEATS = ("A", "B", "C", "D", "E", "F")
 
@@ -53,9 +53,8 @@ def _selected_seats(scenario: dict[str, Any], rng: RNG) -> list[tuple[int, str]]
     return seats
 
 
-def generate_population(
+def generate_manifest(
     scenario: dict[str, Any],
-    strategy: Strategy,
     rng: RNG,
     calibration: dict[str, Any],
 ) -> list[Passenger]:
@@ -110,4 +109,19 @@ def generate_population(
         passenger.initial_frustration = passenger.frustration
         passenger.peak_frustration = passenger.frustration
         passengers.append(passenger)
-    return apply_companion_compatibility(passengers, strategy, rng.fork(71))
+    return passengers
+
+
+def assign_strategy(
+    passengers: list[Passenger], strategy: Strategy, rng: RNG
+) -> list[Passenger]:
+    return apply_companion_policy(passengers, strategy, rng.fork(71))
+
+
+def generate_population(
+    scenario: dict[str, Any],
+    strategy: Strategy,
+    rng: RNG,
+    calibration: dict[str, Any],
+) -> list[Passenger]:
+    return assign_strategy(generate_manifest(scenario, rng, calibration), strategy, rng)

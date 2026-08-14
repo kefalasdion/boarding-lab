@@ -20,6 +20,7 @@ STRATEGY_IDS = {
     "back_to_front_zones",
     "wilma_zones",
     "steffen_companion",
+    "strict_steffen",
     "split_wilma_two_door",
 }
 SERVICE_MODELS = {"field_calibrated", "user_occupancy_rule"}

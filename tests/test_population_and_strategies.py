@@ -1,10 +1,11 @@
+import copy
 import math
 import unittest
 
 from boarding_sim.frustration import evolve_passenger, frustration_from_load
-from boarding_sim.population import generate_population
+from boarding_sim.population import assign_strategy, generate_manifest, generate_population
 from boarding_sim.prng import RNG
-from boarding_sim.strategies import STRATEGIES, strategy_by_id
+from boarding_sim.strategies import STRATEGIES, strategy_by_id, strict_steffen_key
 from boarding_sim.validation import load_behaviour_calibration, normalize_scenario
 
 
@@ -16,6 +17,20 @@ def correlation(xs, ys):
         sum((x - x_mean) ** 2 for x in xs) * sum((y - y_mean) ** 2 for y in ys)
     )
     return numerator / denominator
+
+
+def stable_passenger(passenger):
+    return (
+        passenger.id,
+        passenger.row,
+        passenger.seat,
+        passenger.family_id,
+        passenger.tolerance_threshold,
+        passenger.walking_speed_mps,
+        passenger.bag_count,
+        passenger.initial_stress_load,
+        passenger.initial_frustration,
+    )
 
 
 class PopulationTests(unittest.TestCase):
@@ -36,6 +51,39 @@ class PopulationTests(unittest.TestCase):
         self.assertEqual(len(passengers), 180)
         self.assertEqual(len({p.id for p in passengers}), 180)
         self.assertEqual(len({(p.row, p.seat) for p in passengers}), 180)
+
+    def test_public_strategies_use_identical_manifest(self):
+        manifest = generate_manifest(self.scenario, RNG(20260813), self.calibration)
+        populations = [
+            assign_strategy(
+                copy.deepcopy(manifest),
+                strategy_by_id(strategy_id),
+                RNG(77),
+            )
+            for strategy_id in (
+                "random_front",
+                "back_to_front_zones",
+                "strict_steffen",
+            )
+        ]
+        expected = [stable_passenger(passenger) for passenger in populations[0]]
+        for population in populations[1:]:
+            self.assertEqual(
+                [stable_passenger(passenger) for passenger in population], expected
+            )
+
+    def test_strict_steffen_is_exact_and_may_separate_companions(self):
+        passengers = assign_strategy(
+            copy.deepcopy(
+                generate_manifest(self.scenario, RNG(44), self.calibration)
+            ),
+            strategy_by_id("strict_steffen"),
+            RNG(91),
+        )
+        ordered = sorted(passengers, key=lambda passenger: passenger.boarding_rank)
+        keys = [strict_steffen_key(passenger) for passenger in ordered]
+        self.assertEqual(keys, sorted(keys))
+        self.assertTrue(any(passenger.companion_override for passenger in passengers))
 
     def test_initial_frustration_is_derived_from_load_and_tolerance(self):
         for passenger in self.population():
