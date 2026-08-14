@@ -1,6 +1,7 @@
 {
   "frustrationSlope": 0.12,
   "companionSeparationShock": 0.25,
+  "preparationRelease": {"zoneIntervalSeconds": 20.0, "passengerIntervalSeconds": 4.0},
   "initial": {"delay":0.26,"priorGateWait":0.10,"airportDwell":0.05,"uncertainty":0.16,"fatigue":0.17,"connection":0.18,"unreliableInformation":0.14},
   "preparationPerMinute": {"uncertainty":0.055,"noProgress":0.050,"crowding":0.070,"instruction":0.055,"correctionShock":0.090,"visibleProgressRecovery":0.060,"seatedRecovery":0.025,"socialCoupling":0.018},
   "transferPerMinute": {"bridgeWaiting":0.050,"bridgeWalkingRecovery":0.045,"busWaiting":0.065,"busCrowding":0.050,"busMovingRecovery":0.020,"unloadingRecovery":0.050},
