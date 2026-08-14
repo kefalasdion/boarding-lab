@@ -15,6 +15,10 @@ class WebAssetContractTests(unittest.TestCase):
             for name in ("styles.css", "race.css", "expert.css")
             if (ROOT / "web" / name).exists()
         )
+        cls.javascript = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in sorted((ROOT / "web" / "js").glob("*.js"))
+        )
 
     def test_public_race_and_playback_mount_points_exist(self):
         for element_id in (
@@ -40,6 +44,10 @@ class WebAssetContractTests(unittest.TestCase):
             "scenario-controls",
             "expert-workspace",
             "sources",
+            "copy-summary",
+            "download-image",
+            "heatmap-strategy",
+            "heatmap-metric",
         ):
             self.assertIn(f'id="{element_id}"', self.html)
 
@@ -64,6 +72,14 @@ class WebAssetContractTests(unittest.TestCase):
         self.assertIn("Adam Jacobs", self.html)
         self.assertIn("boarding-only clock", self.html)
         self.assertIn("By Dennis Kefalas", self.html)
+        self.assertNotIn("caused by", self.html.lower())
+
+    def test_browser_code_only_displays_authoritative_model_outputs(self):
+        for token in ("Math.random", "sigmoid", "weibull", "customServiceSeconds", "rowService"):
+            self.assertNotIn(token, self.javascript)
+        self.assertIn("preparation_frustration_burden_f_minutes", self.javascript)
+        self.assertIn("embarkation_frustration_burden_f_minutes", self.javascript)
+        self.assertIn("total_frustration_burden_f_minutes", self.javascript)
 
     def test_visual_system_is_accessible_and_responsive(self):
         for token in (

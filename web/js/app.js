@@ -1,6 +1,9 @@
 import {requestJson} from './api.js';
+import {initializeExpert} from './expert.js';
 import {frustrationVisual} from './frustration-scale.js';
 import {createRaceCanvas} from './race-canvas.js';
+import {renderResults} from './results.js';
+import {downloadShareImage, resultUrl, summaryText} from './share.js';
 import {createTimeline} from './timeline.js';
 
 const STRATEGY_LABELS = {
@@ -191,9 +194,35 @@ function installComparison(data) {
     },
   });
   renderer.setComparison(data);
+  renderResults(data);
   byId('race-status').textContent = 'Ready · same passengers and one continuous clock';
   byId('model-version').textContent = data.model_version;
   renderAt(0);
+}
+
+function shareValues() {
+  return {
+    seed: Number(byId('seed').value),
+    delayMinutes: Number(byId('delay-minutes').value),
+    priorGateWaitMinutes: Number(byId('prior-gate-wait').value),
+    familyShare: Number(byId('family-share').value),
+    bags: Number(byId('bag-share').value),
+  };
+}
+
+function applyQueryInputs() {
+  const parameters = new URLSearchParams(window.location.search);
+  const assignments = [
+    ['seed', 'seed'],
+    ['delay', 'delay-minutes'],
+    ['gateWait', 'prior-gate-wait'],
+    ['family', 'family-share'],
+    ['bags', 'bag-share'],
+  ];
+  for (const [parameter, elementId] of assignments) {
+    const value = parameters.get(parameter);
+    if (value !== null && Number.isFinite(Number(value))) byId(elementId).value = value;
+  }
 }
 
 async function loadComparison(scenario = {}, seed = 20260813) {
@@ -251,4 +280,33 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-loadComparison({}, Number(byId('seed').value));
+byId('copy-summary').addEventListener('click', async () => {
+  if (!comparison) return;
+  const winner = comparison.winner;
+  const winnerResult = winner ? comparison.strategies[winner] : null;
+  const text = summaryText({
+    winnerLabel: winner ? STRATEGY_LABELS[winner] : null,
+    totalTime: winnerResult ? clockLabel(winnerResult.metrics.timings_seconds.total_t0_to_last_seat) : null,
+    seed: comparison.seed,
+  });
+  await navigator.clipboard.writeText(`${text}\n${resultUrl(window.location.href, shareValues())}`);
+  byId('share-status').textContent = 'Summary copied';
+});
+byId('download-image').addEventListener('click', () => {
+  if (!comparison) return;
+  downloadShareImage(byId('share-canvas'), comparison);
+  byId('share-status').textContent = 'Image downloaded';
+});
+
+applyQueryInputs();
+for (const [inputId, outputId, suffix] of [
+  ['delay-minutes', 'delay-output', ' min'],
+  ['prior-gate-wait', 'gate-wait-output', ' min'],
+  ['family-share', 'family-output', '%'],
+  ['bag-share', 'bag-output', '%'],
+]) byId(outputId).textContent = `${byId(inputId).value}${suffix}`;
+
+requestJson('/api/config').then(initializeExpert).catch((error) => {
+  byId('expert-controls').textContent = error.message;
+});
+loadComparison(scenarioPayload(), Number(byId('seed').value));
