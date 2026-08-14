@@ -101,11 +101,32 @@ Each strategy advances independently:
 
 The clock never resets between preparation and boarding. Random can therefore be boarding while Strict Steffen is still organizing passengers. That visible overlap is the experience's central insight.
 
+Every lane keeps its phase and boundary times visible without implying that the strategies start boarding together:
+
+- **Preparation finished at** is the strategy's strict-readiness timestamp measured from the shared T=0.
+- **Boarding started at** is the first observed aircraft-entry timestamp.
+- **Boarding finished at** is the final-seat timestamp measured from the same shared T=0.
+
+A lane may show `Preparing`, `Accessing aircraft`, `Boarding`, `Finished`, or `Timed out`. Boarding cannot begin before that lane's preparation is complete. At any shared-clock position, the gate, access path, aircraft occupancy, aisle congestion, seated count, and phase label must agree with authoritative simulation output.
+
 Desktop shows three synchronized horizontal lanes. Mobile stacks the lanes beneath a sticky master clock while keeping playback synchronized. The user can pause, replay, scrub, and select 0.5×, 1×, 2×, or 4× playback. Reduced-motion mode replaces continuous movement with discrete state changes and progress summaries.
 
 ## Passenger frustration visualization
 
 Every passenger retains an individual model-predicted frustration value throughout preparation, transfer, cabin movement, and seating.
+
+Each strategy lane shows two complementary overall measures:
+
+1. **Live frustration index** — the current mean model-predicted frustration of passengers still in the journey, scaled from the model's `0–1` value to a prominent `0–100` display. It rises and falls with the shared clock and is not added across time.
+2. **Accumulated frustration burden** — mean passenger F·minutes accumulated from T=0 to the current clock position, shown beneath the live index.
+
+At the preparation boundary, the engine records each passenger's exact cumulative burden. Final results then report three non-overlapping values per passenger and as mean/P90 strategy summaries:
+
+- **accumulated during preparation** — burden from T=0 to strict readiness;
+- **accumulated during embarkation** — final burden minus the preparation checkpoint;
+- **total accumulated frustration** — the complete T=0-to-seat burden.
+
+The interface must use “accumulated during,” not “caused by.” Frustration state carries across the phase boundary, so the split is an exact time attribution but not a counterfactual causal claim. All frustration values remain clearly labeled model-predicted and provisional.
 
 Passenger marks use a perceptually ordered scale:
 
@@ -123,6 +144,7 @@ Hover, focus, or tap reveals:
 - current frustration value;
 - current process state;
 - peak frustration and accumulated burden so far;
+- burden accumulated during preparation and embarkation when those values are available;
 - the active modeled stressors or recovery conditions;
 - family or companion status when relevant.
 
@@ -139,13 +161,18 @@ The primary ranking uses total time from preparation announcement to final seati
 
 Each strategy reports:
 
+- preparation-finished timestamp from T=0;
+- boarding-started timestamp from T=0;
+- boarding-finished timestamp from T=0;
 - preparation duration;
 - access duration;
 - cabin boarding duration;
 - total T=0-to-last-seat duration;
 - preparation corrections;
 - family or companion separations/overrides;
-- mean and P90 frustration burden;
+- mean and P90 frustration burden accumulated during preparation;
+- mean and P90 frustration burden accumulated during embarkation;
+- mean and P90 total frustration burden;
 - mean and P90 peak frustration;
 - share of passengers whose peak exceeds `0.75`;
 - valid, timed-out, and invalid run counts.
@@ -181,6 +208,7 @@ The Python result schema gains a compact comparison/replay structure containing:
 - preparation readiness and boarding transition;
 - existing access and aircraft events;
 - per-passenger frustration values or compact reconstructable samples;
+- an exact per-passenger burden checkpoint at preparation completion and final phase-burden fields;
 - summary and many-run comparison results.
 
 The browser uses an HTML canvas for the 540 moving passenger marks and aircraft/gate visualization. Controls, explanations, methodology, result numbers, fallback tables, and all focusable interactions remain semantic HTML. Canvas hit testing maps pointer locations to passenger IDs; keyboard navigation uses an equivalent searchable passenger table and strategy summaries.
@@ -214,6 +242,10 @@ Existing software-invariant, aircraft, access, API, and UI-contract tests remain
 - Strict Steffen separations are explicit and the practical variant retains companion compatibility;
 - no strategy boards before all passengers are correctly prepared;
 - time never resets at the phase transition;
+- preparation-finished, boarding-started, and boarding-finished labels equal their authoritative T=0 timestamps;
+- per-passenger preparation burden plus embarkation burden equals total burden within the documented floating-point tolerance;
+- phase-burden mean and P90 summaries are calculated from passenger-level values rather than differences between aggregate summaries;
+- the live `0–100` frustration index is the serialized current mean multiplied by 100 and never presented as accumulated burden;
 - all UI movements, colors, counts, timings, and labels trace to serialized simulation output;
 - identical scenario and seed produce byte-equivalent comparison/replay results;
 - Monte Carlo summaries keep valid, timed-out, and invalid counts and uncertainty ranges;
