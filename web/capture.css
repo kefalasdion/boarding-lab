@@ -30,9 +30,9 @@
 .capture .lane-key { width: 246px; padding: 12px 20px; }
 .capture .lane-key strong { font-size: 25px; }
 .capture .lane-key span { font-size: 13px; }
-.capture .lane-frustration { margin-top: 12px; }
-.capture .lane-frustration small { font-size: 10px; }
-.capture .lane-frustration output { font-size: 38px; }
+.capture .lane-burden { gap: 7px; margin-top: 14px; }
+.capture .lane-burden dt { font-size: 11px; }
+.capture .lane-burden output { font-size: 30px; }
 .capture #race-canvas { min-height: 900px; }
 .capture .legend-title strong { font-size: 20px; }
 .capture .legend-title span,

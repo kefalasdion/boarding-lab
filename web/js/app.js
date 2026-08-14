@@ -1,6 +1,7 @@
 import {requestJson} from './api.js';
 import {initializeExpert} from './expert.js';
 import {frustrationVisual} from './frustration-scale.js';
+import {phaseBurden} from './phase-burden.js';
 import {createRaceCanvas} from './race-canvas.js';
 import {renderResults} from './results.js';
 import {downloadShareImage, resultUrl, summaryText} from './share.js';
@@ -181,17 +182,24 @@ function updateInspector(time) {
   inspector.append(index, title, detail);
 }
 
-function updateLaneFrustration(strategyId, result, time) {
-  const element = byId(`lane-frustration-${strategyId}`);
-  if (!element) return;
+function burdenLabel(value) {
+  return Number.isFinite(value) ? value.toFixed(2) : '—';
+}
+
+function updateLaneBurden(strategyId, result, time) {
+  const preparation = byId(`lane-preparation-${strategyId}`);
+  const boarding = byId(`lane-boarding-${strategyId}`);
+  if (!preparation || !boarding) return;
   const frame = liveFrameAt(result, time);
-  if (!frame) {
-    element.textContent = '—';
-    return;
-  }
-  const visual = frustrationVisual(frame[1], result.metrics.passenger_experience.threshold);
-  element.textContent = `${Math.round(frame[1] * 100)}%`;
-  element.style.color = visual.color;
+  const split = phaseBurden({
+    time,
+    runningBurden: frame ? frame[2] : null,
+    preparationEndsAt: result.metrics.timings_seconds.preparation,
+    preparationCheckpoint:
+      result.metrics.passenger_experience.preparation_frustration_burden_f_minutes?.mean,
+  });
+  preparation.textContent = burdenLabel(split.preparation);
+  boarding.textContent = burdenLabel(split.boarding);
 }
 
 function renderAt(time) {
@@ -201,7 +209,7 @@ function renderAt(time) {
   if (comparison) {
     for (const strategyId of comparison.strategy_order) {
       updateLiveRow(strategyId, comparison.strategies[strategyId], time);
-      updateLaneFrustration(strategyId, comparison.strategies[strategyId], time);
+      updateLaneBurden(strategyId, comparison.strategies[strategyId], time);
     }
   }
   updateInspector(time);

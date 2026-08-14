@@ -78,15 +78,24 @@
           <div class="lane-key" aria-hidden="true">
             <div>
               <strong>Random</strong><span>One loose queue</span>
-              <p class="lane-frustration"><small>Frustration</small><output id="lane-frustration-random_front">0%</output></p>
+              <dl class="lane-burden">
+                <div><dt>Forming the line</dt><dd><output id="lane-preparation-random_front">0.00</output></dd></div>
+                <div><dt>Boarding</dt><dd><output id="lane-boarding-random_front">0.00</output></dd></div>
+              </dl>
             </div>
             <div>
               <strong>Back-to-front</strong><span>Six row zones</span>
-              <p class="lane-frustration"><small>Frustration</small><output id="lane-frustration-back_to_front_zones">0%</output></p>
+              <dl class="lane-burden">
+                <div><dt>Forming the line</dt><dd><output id="lane-preparation-back_to_front_zones">0.00</output></dd></div>
+                <div><dt>Boarding</dt><dd><output id="lane-boarding-back_to_front_zones">0.00</output></dd></div>
+              </dl>
             </div>
             <div>
               <strong>Strict Steffen</strong><span>Theoretical sequence</span>
-              <p class="lane-frustration"><small>Frustration</small><output id="lane-frustration-strict_steffen">0%</output></p>
+              <dl class="lane-burden">
+                <div><dt>Forming the line</dt><dd><output id="lane-preparation-strict_steffen">0.00</output></dd></div>
+                <div><dt>Boarding</dt><dd><output id="lane-boarding-strict_steffen">0.00</output></dd></div>
+              </dl>
             </div>
           </div>
           <canvas id="race-canvas" width="1440" height="690" aria-label="Animated comparison of three passenger boarding strategies" aria-hidden="true"></canvas>
@@ -94,7 +103,7 @@
 
         <div class="race-support content-width">
           <div id="frustration-legend" class="frustration-legend" aria-label="Model-predicted frustration scale">
-            <div class="legend-title"><strong>Live frustration index</strong><span>0–100 · current, not accumulated · model-predicted</span></div>
+            <div class="legend-title"><strong>Passenger frustration</strong><span>dot colour = felt right now · counters = frustration-minutes built up per passenger · model-predicted</span></div>
             <div class="legend-ramp" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
             <div class="legend-labels"><span>Calm</span><span>Low</span><span>Raised</span><span>High</span><span>Critical</span></div>
           </div>
