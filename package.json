@@ -8,9 +8,12 @@
     "test:e2e": "playwright test",
     "test:all": "python3 -m unittest discover -s tests -p 'test_*.py' -v && node --test tests/*.test.mjs && playwright test",
     "measure:playback": "node scripts/measure_playback.mjs",
+    "render:video": "bash scripts/render_linkedin_video.sh",
     "serve": "python3 -m boarding_sim"
   },
-  "engines": {"node": ">=20"},
+  "engines": {
+    "node": ">=20"
+  },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",
     "@playwright/test": "^1.55.0"
