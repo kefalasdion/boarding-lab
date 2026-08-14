@@ -25,9 +25,14 @@
 .lane-key div:last-child { border-bottom: 0; }
 .lane-key strong { font-family: Georgia, serif; font-size: 19px; font-weight: 500; }
 .lane-key span { margin-top: 2px; color: #91a4bb; font-size: 10px; }
-.lane-frustration { display: flex; align-items: baseline; gap: 6px; margin: 7px 0 0; }
-.lane-frustration small { color: #8ea6c2; font-size: 8px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
-.lane-frustration output { color: var(--frustration-calm); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+/* `.lane-key div` also matches these rows, so direction and border are reset
+   explicitly rather than inherited from the lane wrapper. */
+.lane-burden { display: grid; gap: 7px; margin: 9px 0 0; }
+.lane-burden > div { display: flex; flex-direction: row; align-items: baseline; justify-content: space-between; gap: 8px; border-bottom: 0; }
+.lane-burden dt { color: #8ea6c2; font-size: 8px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.lane-burden dd { margin: 0; }
+.lane-burden output { color: #f2f6fb; font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+.lane-burden > div:first-child output { color: var(--frustration-raised); }
 #race-canvas { display: block; width: 100%; height: auto; min-height: 520px; }
 
 .race-support { display: grid; grid-template-columns: 1fr minmax(270px, .65fr); gap: 30px; padding-top: 24px; }
