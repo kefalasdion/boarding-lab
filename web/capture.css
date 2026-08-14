@@ -17,13 +17,17 @@
 .capture .evidence-disclosure { display: none !important; }
 
 .capture main { display: block; }
-.capture .race-section { padding: 30px 34px 26px; }
+.capture .race-section { min-height: 1350px; padding: 30px 34px 26px; }
 .capture .clock-dock { justify-content: flex-start; margin-bottom: 26px; }
 .capture .master-clock-wrap output { font-size: 62px; }
 .capture .race-support { grid-template-columns: 1fr; padding-top: 20px; }
 
-/* Bigger lanes: the live table is gone, so the race takes the space back. */
-.capture .lane-key { width: 236px; padding: 12px 20px; }
+/* Bigger lanes: the live table is gone, so the race takes the space back.
+   The stage is inset from the left so the enlarged lane labels never overlap
+   the gate passengers the canvas draws. */
+.capture .race-stage { padding-left: 246px; }
+.capture .race-axis { padding-left: 22px; }
+.capture .lane-key { width: 246px; padding: 12px 20px; }
 .capture .lane-key strong { font-size: 25px; }
 .capture .lane-key span { font-size: 13px; }
 .capture .lane-frustration { margin-top: 12px; }
