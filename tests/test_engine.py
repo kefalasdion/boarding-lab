@@ -66,6 +66,21 @@ class FlightEngineTests(unittest.TestCase):
         self.assertEqual(result["status"], "valid")
         self.assertEqual(metrics["seated_count"], 180)
 
+    def test_phase_burdens_partition_total_burden_exactly(self):
+        result = run_flight({}, 5101)
+        for passenger in result.passengers:
+            self.assertAlmostEqual(
+                passenger.preparation_frustration_burden
+                + passenger.embarkation_frustration_burden,
+                passenger.frustration_burden,
+                places=10,
+            )
+        experience = result.metrics["passenger_experience"]
+        self.assertEqual(
+            experience["frustration_burden_f_minutes"],
+            experience["total_frustration_burden_f_minutes"],
+        )
+
     def test_frustration_status_is_provisional_not_validated(self):
         result = to_primitive(run_flight({}, 4403))
         status = result["model_status"]

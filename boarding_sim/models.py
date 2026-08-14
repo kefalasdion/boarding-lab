@@ -30,6 +30,8 @@ class Passenger:
     frustration: float = 0.0
     initial_frustration: float = 0.0
     frustration_burden: float = 0.0
+    preparation_frustration_burden: float = 0.0
+    embarkation_frustration_burden: float = 0.0
     peak_frustration: float = 0.0
     time_above_threshold_seconds: float = 0.0
     prep_state: str = "waiting"
@@ -183,6 +185,7 @@ class AircraftResult:
     history: list[ProgressSample]
     events: list[SimulationEvent]
     movement_audit: list[MovementEvent]
+    frustration_frames: list[list[Any]]
     first_aircraft_ready_time: float
     first_entry_time: float | None
     last_seat_time: float | None
@@ -219,6 +222,7 @@ class FlightResult:
     parameter_provenance: list[dict[str, Any]]
     passengers: list[Passenger]
     phases: dict[str, Any]
+    replay: dict[str, Any]
     trajectory: list[ProgressSample]
     metrics: dict[str, Any]
     diagnostics: dict[str, Any]

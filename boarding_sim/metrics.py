@@ -54,6 +54,9 @@ def build_metrics(
         if total_seconds is None
         else total_seconds - preparation.time_seconds
     )
+    total_burden = summarize_distribution(
+        passenger.frustration_burden for passenger in passengers
+    )
     return {
         "timings_seconds": {
             "preparation": preparation.time_seconds,
@@ -67,9 +70,16 @@ def build_metrics(
             "initial_frustration": summarize_distribution(
                 passenger.initial_frustration for passenger in passengers
             ),
-            "frustration_burden_f_minutes": summarize_distribution(
-                passenger.frustration_burden for passenger in passengers
+            "preparation_frustration_burden_f_minutes": summarize_distribution(
+                passenger.preparation_frustration_burden
+                for passenger in passengers
             ),
+            "embarkation_frustration_burden_f_minutes": summarize_distribution(
+                passenger.embarkation_frustration_burden
+                for passenger in passengers
+            ),
+            "total_frustration_burden_f_minutes": total_burden,
+            "frustration_burden_f_minutes": total_burden,
             "peak_frustration": summarize_distribution(
                 passenger.peak_frustration for passenger in passengers
             ),

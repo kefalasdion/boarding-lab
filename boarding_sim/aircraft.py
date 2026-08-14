@@ -144,6 +144,29 @@ def _snapshot(
     )
 
 
+def _frustration_frame(
+    passengers: list[Passenger], time_seconds: float
+) -> list[Any]:
+    active = [passenger for passenger in passengers if not passenger.seated]
+    live = active or passengers
+    return [
+        round(time_seconds, 3),
+        round(mean(passenger.frustration for passenger in live), 6),
+        round(mean(passenger.frustration_burden for passenger in passengers), 6),
+        [
+            [
+                passenger.id,
+                round(passenger.frustration, 6),
+                round(passenger.frustration_burden, 6),
+                passenger.aircraft_state
+                if passenger.aircraft_state != "not_arrived"
+                else passenger.access_state,
+            ]
+            for passenger in sorted(passengers, key=lambda item: item.id)
+        ],
+    ]
+
+
 def simulate_aircraft(
     passengers: list[Passenger],
     access: AccessResult,
@@ -194,6 +217,8 @@ def simulate_aircraft(
     for passenger in passengers:
         passenger.seated = False
         passenger.aircraft_state = "not_arrived"
+
+    frustration_frames = [_frustration_frame(passengers, phase_start_seconds)]
 
     while seated_count < total and time_seconds - first_ready < config["maxBoardingSeconds"]:
         for passenger_id, record in list(in_aisle.items()):
@@ -415,6 +440,9 @@ def simulate_aircraft(
                     seated_count,
                 )
             )
+            frustration_frames.append(
+                _frustration_frame(passengers, next_sample_time)
+            )
             next_sample_time += sample_seconds
 
     timed_out = seated_count < total
@@ -422,6 +450,8 @@ def simulate_aircraft(
         history.append(
             _snapshot(passengers, access, time_seconds, len(entered), seated_count)
         )
+    if frustration_frames[-1][0] != time_seconds:
+        frustration_frames.append(_frustration_frame(passengers, time_seconds))
     cabin_seconds = (
         None
         if first_entry_time is None or last_seat_time is None
@@ -436,6 +466,7 @@ def simulate_aircraft(
         history=history,
         events=events,
         movement_audit=movement_audit,
+        frustration_frames=frustration_frames,
         first_aircraft_ready_time=first_ready,
         first_entry_time=first_entry_time,
         last_seat_time=last_seat_time,

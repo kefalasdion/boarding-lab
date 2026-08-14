@@ -12,6 +12,7 @@ from .population import generate_population
 from .preparation import simulate_preparation
 from .prng import RNG
 from .provenance import load_parameter_registry, validate_registry_coverage
+from .replay import build_replay
 from .strategies import strategy_by_id
 from .validation import (
     load_behaviour_calibration,
@@ -20,8 +21,8 @@ from .validation import (
     validate_seed,
 )
 
-SCHEMA_VERSION = "1.0.0"
-MODEL_VERSION = "pbs-v2-python-1.0.0"
+SCHEMA_VERSION = "1.1.0"
+MODEL_VERSION = "pbs-v2-python-1.1.0"
 
 MODEL_STATUS = {
     "application": "research_and_calibration_tool",
@@ -54,6 +55,8 @@ def run_flight(
     preparation = simulate_preparation(
         passengers, scenario, strategy, root_rng.fork(2), calibration
     )
+    for passenger in passengers:
+        passenger.preparation_frustration_burden = passenger.frustration_burden
     access = simulate_access(
         passengers,
         scenario,
@@ -69,7 +72,14 @@ def run_flight(
         calibration,
         preparation.time_seconds,
     )
+    for passenger in passengers:
+        passenger.embarkation_frustration_burden = max(
+            0.0,
+            passenger.frustration_burden
+            - passenger.preparation_frustration_burden,
+        )
     metrics = build_metrics(passengers, scenario, preparation, access, aircraft)
+    replay = build_replay(passengers, preparation, aircraft)
     trajectory = list(preparation.history)
     trajectory.extend(
         sample
@@ -140,6 +150,7 @@ def run_flight(
                 },
             },
         },
+        replay=replay,
         trajectory=trajectory,
         metrics=metrics,
         diagnostics={
