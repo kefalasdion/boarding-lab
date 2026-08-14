@@ -3,14 +3,17 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "passenger-boarding-simulator"
-version = "1.0.0"
-description = "Deterministic passenger boarding research simulator"
+name = "boarding-lab"
+version = "0.3.0"
+description = "Deterministic passenger boarding and frustration research simulator"
 requires-python = ">=3.11"
+license = "MIT"
+authors = [{name = "Dennis Kefalas"}]
+readme = "README.md"
 dependencies = []
 
 [project.scripts]
-passenger-boarding-simulator = "boarding_sim.__main__:main"
+boarding-lab = "boarding_sim.__main__:main"
 
 [tool.unittest]
 start-directory = "tests"
