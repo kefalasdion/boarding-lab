@@ -21,7 +21,7 @@ node --check web/js/app.js
 
 Fresh results:
 
-- Python: **87 passed**, 0 failed;
+- Python: **90 passed**, 0 failed;
 - pure JavaScript/reference: **16 passed**, 0 failed;
 - Playwright desktop/390 × 844 phone: **6 passed**, 0 failed;
 - axe: **0 serious or critical violations** on desktop and phone;
