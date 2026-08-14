@@ -147,7 +147,9 @@ actually tried these methods. Where they agree with the simulator, that is encou
 validating. Where they disagree, the disagreement is recorded here rather than hidden.
 
 ### Steffen & Hotchkiss, *Experimental test of airplane boarding methods* (2012)
-Journal of Air Transport Management 18(1), 64–67. Preprint: [arXiv:1108.5211](https://arxiv.org/abs/1108.5211)
+Journal of Air Transport Management 18(1), 64–67. DOI
+[10.1016/j.jairtraman.2011.10.003](https://doi.org/10.1016/j.jairtraman.2011.10.003).
+Preprint: [arXiv:1108.5211](https://arxiv.org/abs/1108.5211)
 
 72 volunteers, ages 5 and up, in a 12-row Boeing 757 fuselage mock-up on a Southern California
 soundstage. Measured boarding times:
@@ -196,8 +198,8 @@ Note the scale: an operational change that a major airline considered worth a ne
 bought roughly two minutes. Simulation studies routinely report much larger gains. The gap between
 the two is the subject of this project.
 
-### Milne et al., *Air Passenger Preferences: An International Comparison Affects Boarding Theory*
-Operations Research 71(3), 2023. DOI [10.1287/opre.2021.2148](https://doi.org/10.1287/opre.2021.2148)
+### Bachmat, Erland, Jaehn & Neumann, *Air Passenger Preferences: An International Comparison Affects Boarding Theory*
+Operations Research 71(3), 798–820, 2023. DOI [10.1287/opre.2021.2148](https://doi.org/10.1287/opre.2021.2148)
 
 A survey of 1,500 air passengers drawn equally from Germany, Israel and the United States. Its central
 finding is that **individual boarding time — how long *you* spend in the process — relates more
