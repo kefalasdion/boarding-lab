@@ -13,7 +13,11 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 from urllib.parse import unquote, urlparse
 
-from .comparison import run_comparison, run_comparison_monte_carlo
+from .comparison import (
+    compact_public_comparison,
+    run_comparison,
+    run_comparison_monte_carlo,
+)
 from .engine import MODEL_STATUS, MODEL_VERSION, SCHEMA_VERSION, run_flight
 from .monte_carlo import run_monte_carlo
 from .provenance import load_parameter_registry
@@ -132,8 +136,8 @@ class SimulatorHandler(BaseHTTPRequestHandler):
                     payload.get("baseSeed"),
                 )
             elif path == "/api/compare":
-                result = run_comparison(
-                    payload.get("scenario", {}), payload.get("seed")
+                result = compact_public_comparison(
+                    run_comparison(payload.get("scenario", {}), payload.get("seed"))
                 )
             else:
                 result = run_comparison_monte_carlo(

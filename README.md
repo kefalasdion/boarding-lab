@@ -1,14 +1,16 @@
-# Passenger Boarding System Simulator
+# Boarding Lab
 
-A deterministic, passenger-by-passenger research simulator for boarding an A320 with 180 seats.
+A deterministic, passenger-by-passenger research simulator that compares Random, Back-to-front, and theoretical Strict Steffen boarding for the same A320 passenger manifest.
 
 The simulated clock starts at **T=0: the announcement to prepare for boarding**. It does not simulate airport arrival, check-in, security, shopping, or the earlier terminal journey. Delay, prior waiting, dwell, fatigue, trust, and connection pressure enter only as inputs used to create passenger state at T=0.
 
-The application keeps three separate parts:
+The public race keeps three separate parts:
 
 1. passenger state at T=0;
 2. preparation required by the boarding method;
 3. bridge or bus access and aircraft boarding until the final passenger is seated.
+
+Each strategy begins aircraft access only after its own preparation has finished. The shared clock never resets. Live frustration is a current 0–100 index; preparation, embarkation, and total burden are separately reported in F·minutes.
 
 ## Start the application
 
@@ -47,15 +49,17 @@ npm test
 Every run requires an explicit 32-bit integer seed.
 
 ```python
-from boarding_sim import run_flight, run_monte_carlo
+from boarding_sim import run_comparison, run_comparison_monte_carlo, run_flight
 
 flight = run_flight(
     {"boarding": {"strategy": "wilma"}},
     seed=42,
 )
 
-comparison = run_monte_carlo(
-    {"boarding": {"strategy": "wilma"}},
+comparison = run_comparison({}, seed=42)
+
+uncertainty = run_comparison_monte_carlo(
+    {},
     runs=100,
     base_seed=10_000,
 )
@@ -77,6 +81,9 @@ Use `boarding_sim.serialization.canonical_json_bytes(result)` when results must 
 - field baggage/seat-interference service or the separate user occupancy rule;
 - latent stress load and tolerance threshold as separate variables;
 - initial and peak frustration, cumulative F·minutes, and time above a configurable threshold;
+- exact burden accumulated during preparation, during embarkation, and in total;
+- compact authoritative gate, frustration, and aircraft-event replay for browser interpolation;
+- fair three-strategy comparison from one cloned passenger manifest;
 - deterministic Monte Carlo quantiles, 95% mean intervals, and valid/timeout/invalid counts.
 
 ## Evidence and validation status
@@ -105,5 +112,20 @@ Every configurable value has a record in [`config/parameter-registry.json`](conf
 - `GET /api/config` — default scenario, strategies, provenance, and model status;
 - `POST /api/run` — body `{ "scenario": {...}, "seed": 42 }`;
 - `POST /api/monte-carlo` — body `{ "scenario": {...}, "runs": 100, "baseSeed": 10000 }`.
+- `POST /api/compare` — fair Random/Back-to-front/Strict Steffen replay for one seed;
+- `POST /api/compare-monte-carlo` — fair repeated comparison, capped at 200 runs;
+- `GET /data/default-comparison.json` — tracked representative replay and 100-run summary.
 
 Scenario validation failures return HTTP 400 with stable `path`, `code`, and `message` issues. A simulation timeout is a successful HTTP response with `status: "timed_out"` because it is a modeled outcome.
+
+## Rebuild the tracked default
+
+```bash
+python3 scripts/build_default_comparison.py --workers 4
+```
+
+The artifact uses base seed `20260813`, 100 fair comparisons, and a representative seed closest to the three median total times. It contains no wall-clock input.
+
+## Scope
+
+The three-way presentation is inspired by Adam Jacobs’s boarding visualization. Boarding Lab adds the preparation period that a boarding-only clock omits. FlyByCode integration, deployment, analytics, article composition, and LinkedIn publication are deliberately deferred to a separate approved phase.

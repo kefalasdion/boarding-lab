@@ -17,6 +17,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from boarding_sim.comparison import (
     PUBLIC_STRATEGY_IDS,
     aggregate_comparison_records,
+    compact_public_comparison,
     compact_comparison_record,
     run_comparison,
 )
@@ -76,98 +77,12 @@ def representative_seed(summary: dict[str, Any]) -> int:
     return min(valid_records, key=distance)["seed"]
 
 
-def compact_public_representative(comparison: dict[str, Any]) -> dict[str, Any]:
-    """Remove research-only duplicates while preserving every public display input."""
-    strategies: dict[str, Any] = {}
-    for strategy_id in comparison["strategy_order"]:
-        result = comparison["strategies"][strategy_id]
-        preparation_end = result["metrics"]["timings_seconds"]["preparation"]
-        replay = result["replay"]
-        replay["frustration_frames"] = [
-            frame
-            for frame in replay["frustration_frames"]
-            if frame[0] >= preparation_end
-        ]
-        retained_codes = {
-            replay["event_codebook"]["aircraft_entered"],
-            replay["event_codebook"]["seated"],
-        }
-        replay["aircraft_events"] = [
-            event for event in replay["aircraft_events"] if event[1] in retained_codes
-        ]
-        replay["passenger_tracks"] = {
-            passenger_id: track[:2]
-            for passenger_id, track in replay["passenger_tracks"].items()
-        }
-        replay.pop("state_codebook", None)
-        replay.pop("driver_labels", None)
-        for frame in replay["gate"]["frames"]:
-            frame[1] = round(frame[1], 5)
-            frame[2] = round(frame[2], 5)
-            for state in frame[3]:
-                state[3] = round(state[3], 5)
-                state[4] = round(state[4], 5)
-        for frame in replay["frustration_frames"]:
-            frame[1] = round(frame[1], 5)
-            frame[2] = round(frame[2], 5)
-            for state in frame[3]:
-                state[1] = round(state[1], 5)
-                state[2] = round(state[2], 5)
-        strategies[strategy_id] = {
-            "seed": result["seed"],
-            "status": result["status"],
-            "strategy": result["strategy"],
-            "manifest_fingerprint": result["manifest_fingerprint"],
-            "passengers": [
-                {
-                    "id": passenger["id"],
-                    "row": passenger["row"],
-                    "seat": passenger["seat"],
-                    "family_id": passenger["family_id"],
-                    "frustration_burden": passenger["frustration_burden"],
-                    "peak_frustration": passenger["peak_frustration"],
-                }
-                for passenger in result["passengers"]
-            ],
-            "phases": {
-                "part2_preparation": {
-                    "progress": result["phases"]["part2_preparation"]["progress"]
-                },
-                "part3_embarkation": {
-                    "status": result["phases"]["part3_embarkation"]["status"],
-                    "aircraft": {
-                        key: result["phases"]["part3_embarkation"]["aircraft"][key]
-                        for key in (
-                            "first_entry_time_seconds",
-                            "last_seat_time_seconds",
-                            "progress",
-                        )
-                    },
-                },
-            },
-            "replay": replay,
-            "metrics": result["metrics"],
-        }
-    return {
-        "schema_version": comparison["schema_version"],
-        "model_version": comparison["model_version"],
-        "seed": comparison["seed"],
-        "status": comparison["status"],
-        "model_status": comparison["model_status"],
-        "manifest_fingerprint": comparison["manifest_fingerprint"],
-        "strategy_order": comparison["strategy_order"],
-        "strategies": strategies,
-        "ranking": comparison["ranking"],
-        "winner": comparison["winner"],
-    }
-
-
 def assemble_default_artifact(records: list[dict[str, Any]]) -> dict[str, Any]:
     full_summary = aggregate_comparison_records(records, BASE_SEED)
     selected_seed = representative_seed(full_summary)
     summary = dict(full_summary)
     summary.pop("run_records", None)
-    representative = compact_public_representative(
+    representative = compact_public_comparison(
         run_comparison(DEFAULT_SCENARIO_PATCH, selected_seed)
     )
     return to_primitive(
@@ -215,7 +130,7 @@ def main() -> None:
         raise SystemExit("The tracked default artifact must contain exactly 100 runs.")
     if arguments.recompact_existing:
         artifact = load_default_artifact()
-        artifact["representative"] = compact_public_representative(
+        artifact["representative"] = compact_public_comparison(
             artifact["representative"]
         )
         payload = canonical_json_bytes(artifact)

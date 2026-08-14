@@ -10,6 +10,7 @@ from .engine import MODEL_STATUS, MODEL_VERSION, SCHEMA_VERSION, run_flight_from
 from .metrics import summarize_distribution
 from .population import generate_manifest
 from .prng import RNG
+from .replay import REPLAY_STATE_CODES
 from .serialization import canonical_json_bytes, to_primitive
 from .validation import (
     ScenarioValidationError,
@@ -112,6 +113,93 @@ def run_comparison(
         "strategies": results,
         "ranking": ranking,
         "winner": ranking[0] if ranking else None,
+    }
+
+
+def compact_public_comparison(comparison: dict[str, Any]) -> dict[str, Any]:
+    """Remove audit duplicates while preserving every public display input."""
+    comparison = copy.deepcopy(comparison)
+    strategies: dict[str, Any] = {}
+    for strategy_id in comparison["strategy_order"]:
+        result = comparison["strategies"][strategy_id]
+        preparation_end = result["metrics"]["timings_seconds"]["preparation"]
+        replay = result["replay"]
+        replay["frustration_frames"] = [
+            frame
+            for frame in replay["frustration_frames"]
+            if frame[0] >= preparation_end
+        ]
+        retained_codes = {
+            replay["event_codebook"]["aircraft_entered"],
+            replay["event_codebook"]["seated"],
+        }
+        replay["aircraft_events"] = [
+            event for event in replay["aircraft_events"] if event[1] in retained_codes
+        ]
+        replay["passenger_tracks"] = {
+            passenger_id: track[:2]
+            for passenger_id, track in replay["passenger_tracks"].items()
+        }
+        replay["state_codebook"] = dict(REPLAY_STATE_CODES)
+        replay.pop("driver_labels", None)
+        for frame in replay["gate"]["frames"]:
+            frame[1] = round(frame[1], 5)
+            frame[2] = round(frame[2], 5)
+            for state in frame[3]:
+                state[3] = round(state[3], 5)
+                state[4] = round(state[4], 5)
+        for frame in replay["frustration_frames"]:
+            frame[1] = round(frame[1], 5)
+            frame[2] = round(frame[2], 5)
+            for state in frame[3]:
+                state[1] = round(state[1], 5)
+                state[2] = round(state[2], 5)
+        strategies[strategy_id] = {
+            "seed": result["seed"],
+            "status": result["status"],
+            "strategy": result["strategy"],
+            "manifest_fingerprint": result["manifest_fingerprint"],
+            "passengers": [
+                {
+                    "id": passenger["id"],
+                    "row": passenger["row"],
+                    "seat": passenger["seat"],
+                    "family_id": passenger["family_id"],
+                    "frustration_burden": passenger["frustration_burden"],
+                    "peak_frustration": passenger["peak_frustration"],
+                }
+                for passenger in result["passengers"]
+            ],
+            "phases": {
+                "part2_preparation": {
+                    "progress": result["phases"]["part2_preparation"]["progress"]
+                },
+                "part3_embarkation": {
+                    "status": result["phases"]["part3_embarkation"]["status"],
+                    "aircraft": {
+                        key: result["phases"]["part3_embarkation"]["aircraft"][key]
+                        for key in (
+                            "first_entry_time_seconds",
+                            "last_seat_time_seconds",
+                            "progress",
+                        )
+                    },
+                },
+            },
+            "replay": replay,
+            "metrics": result["metrics"],
+        }
+    return {
+        "schema_version": comparison["schema_version"],
+        "model_version": comparison["model_version"],
+        "seed": comparison["seed"],
+        "status": comparison["status"],
+        "model_status": comparison["model_status"],
+        "manifest_fingerprint": comparison["manifest_fingerprint"],
+        "strategy_order": comparison["strategy_order"],
+        "strategies": strategies,
+        "ranking": comparison["ranking"],
+        "winner": comparison["winner"],
     }
 
 

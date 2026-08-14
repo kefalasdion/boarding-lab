@@ -60,9 +60,11 @@ Movement follows occupancy snapshots: a passenger cannot enter a cell occupied a
 
 ## Web separation
 
-`web/app.js` formats API results and draws SVG charts. It contains no randomness, frustration formula, baggage distribution, row-service calculation, movement rule, or strategy ranking. The Python package is the only production model implementation.
+`web/js/app.js` orchestrates the page; `race-canvas.js`, `results.js`, `expert.js`, and `share.js` each own one rendering concern. Browser code contains no randomness, frustration formula, baggage distribution, row-service calculation, movement rule, or strategy ordering rule. The Python package is the only production model implementation.
 
-The UI uses semantic controls, visible focus styles, textual chart captions, reduced-motion support, responsive layouts, and explicit unsuccessful Monte Carlo counts.
+The UI uses semantic controls, a live table alternative to canvas, visible focus styles, reduced-motion event stepping, responsive layouts, and explicit unsuccessful Monte Carlo counts.
+
+The tracked default artifact is compacted for delivery: research-only provenance/diagnostic duplicates are omitted, pre-preparation frustration frames reuse gate-frame values, and aircraft motion is visually interpolated between authoritative entry and seating events. Full `/api/compare` responses retain the complete audit replay.
 
 ## Known scientific limits
 

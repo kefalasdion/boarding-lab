@@ -1,111 +1,112 @@
 # Verification Report
 
-**Date:** 2026-08-13  
-**Model:** `pbs-v2-python-1.0.0`  
-**Result schema:** `1.0.0`
+**Date:** 2026-08-14
 
-## Automated Python suite
+**Model:** `pbs-v2-python-1.1.0`
 
-Command:
+**Result schema:** `1.1.0`
+
+This report verifies software behavior and presentation quality. It does not establish scientific or operational validity.
+
+## Automated suites
 
 ```bash
 python3 -m unittest discover -s tests -p 'test_*.py' -v
+npm test
+npm run test:e2e
+bash tests/smoke_standalone.sh
+python3 -m compileall -q boarding_sim scripts
+node --check web/js/app.js
 ```
 
-Final result: **66 tests passed, 0 failed**.
+Fresh results:
 
-Coverage includes:
+- Python: **87 passed**, 0 failed;
+- pure JavaScript/reference: **16 passed**, 0 failed;
+- Playwright desktop/390 × 844 phone: **6 passed**, 0 failed;
+- axe: **0 serious or critical violations** on desktop and phone;
+- clean standalone smoke: passed using Python runtime only;
+- Python and JavaScript syntax checks: passed.
 
-- fixed PRNG and canonical bytes;
-- strict scenario validation and provenance coverage/value matching;
-- individual passengers, unique seats, correlated traits, and family compatibility;
-- separate latent load/tolerance and all required frustration metrics;
-- explicit strict-preparation policy, progress, corrections, and timeout;
-- bridge scan/walk/headway events;
-- bus capacity/loading/dispatch/travel/front-rear unloading events;
-- aircraft cell occupancy, adjacent movement, permitted direction, and unique seating;
-- independent door streams and seeded conflict resolution;
-- field/user service separation and exact custom-rule thresholds;
-- deterministic complete flight and Monte Carlo results;
-- valid/timeout/invalid Monte Carlo aggregation and uncertainty intervals;
-- API validation/timeout/static-path behavior;
-- required UI surfaces, provenance badges, accessibility, and rendering separation.
+Coverage includes fair manifest cloning, exact Strict Steffen ordering, deterministic gate coordinates, complete preparation, phase-specific timeouts, aircraft movement invariants, additive phase burdens, replay traceability, API limits/security headers, playback controls, sharing text, dynamic no-winner behavior, responsive overflow, and accessibility.
 
-## Preserved JavaScript reference suite
+## Representative public comparison
+
+The tracked artifact uses base seed `20260813`, 100 fair comparisons, and representative seed `20260841`.
+
+| Strategy | Preparation finished | Boarding started | Boarding finished | Prep burden mean | Embarkation burden mean | Total burden mean |
+|---|---:|---:|---:|---:|---:|---:|
+| Random | 216.0 s | 252.0 s | 1229.0 s | 0.6264 F·min | 1.9985 F·min | 2.6249 F·min |
+| Back-to-front | 195.0 s | 231.0 s | 1347.5 s | 0.6191 F·min | 2.5319 F·min | 3.1510 F·min |
+| Strict Steffen | 231.0 s | 275.0 s | 960.0 s | 0.7155 F·min | 1.3162 F·min | 2.0317 F·min |
+
+The three preparation finishes and three boarding starts are distinct. At intermediate clock positions, one method can still be preparing while another has moved to access or begun aircraft boarding. The clock never resets per lane.
+
+The 100-run total-time P10/P50/P90 values are:
+
+- Random: `1150.1 / 1256.25 / 1355.5 s`;
+- Back-to-front: `1234.6 / 1340.5 / 1461.7 s`;
+- Strict Steffen: `896.55 / 943.75 / 1011.15 s`.
+
+These are model outputs under provisional preparation/frustration inputs, not an operational recommendation.
+
+## Determinism and payload measurements
+
+```bash
+/usr/bin/time -p python3 scripts/build_default_comparison.py --workers 4
+git diff --exit-code -- web/data/default-comparison.json
+```
+
+- 100-run artifact build: **125.06 s wall time**;
+- regeneration diff: none;
+- tracked default artifact: **3,850,741 bytes**;
+- compact public `/api/compare` result at representative seed: **4,557,526 bytes**;
+- live three-strategy comparison computation: **4.68 s**;
+- compact per-strategy representative replays: about **1.16–1.29 MB** each;
+- full internal results retain research diagnostics; public delivery omits those duplicates.
+
+All simulation randomness comes from explicit seeded PRNG streams. No Python global-random import, browser randomness, or clock-derived seed is used.
+
+## Playback performance
 
 Command:
 
 ```bash
-npm test
+npm run measure:playback
 ```
 
-Result: **5 tests passed, 0 failed**.
+Thirty-second Chromium run at 1440 × 900 with all 540 passenger marks active:
 
-## Static checks
+- sampled frames: **1,799**;
+- median interval: **16.7 ms**;
+- P95 interval: **17.6 ms**;
+- maximum interval: **17.8 ms**;
+- sustained stutter or unresponsive controls: none observed.
 
-The following succeeded:
+This meets the targets of median below 16.7 ms within timer precision and P95 below 33.3 ms.
 
-```bash
-python3 -m compileall -q boarding_sim
-node --check web/app.js
-```
+## Browser and failure-state verification
 
-The final verification also scans production simulation sources for forbidden `random` imports, clock-derived seeds, and `Math.random`.
+Verified in a real desktop browser and at 390 × 844:
 
-## Deterministic smoke scenarios
-
-Seed `20260813`, default bridge scenario:
-
-- status: `valid`;
-- seated: `180/180`;
-- preparation: `126.0 s`;
-- last aircraft-door arrival relative to preparation end: `694.9931886778905 s`;
-- embarkation: `1091.5 s`;
-- cabin boarding: `1058.5 s`;
-- T=0 to last seat: `1217.5 s`.
-
-Seed `20260813`, bus access with `split_half_two_door`:
-
-- status: `valid`;
-- seated: `180/180`;
-- preparation: `135.0 s`;
-- last aircraft-door arrival relative to preparation end: `383.00174307797283 s`;
-- embarkation: `927.5 s`;
-- cabin boarding: `626.5 s`;
-- T=0 to last seat: `1062.5 s`.
-
-Serializing the default result twice produced identical **461,775-byte** canonical JSON outputs.
-
-A three-run default Monte Carlo batch using seeds `91000`–`91002` reported:
-
-- requested: 3;
-- valid: 3;
-- timed out: 0;
-- invalid: 0;
-- total-time P10/P50/P90: `1155.5 / 1169.5 / 1195.9 s`;
-- total-time 95% mean interval: `1145.6484417420133–1203.6848915913201 s`.
-
-## Browser verification
-
-The local application was inspected in a real browser at desktop and 390 × 844 mobile viewports.
-
-Verified:
-
-- default bridge run rendered `180/180` seated;
-- selecting the half-cabin two-door method automatically selected bus access;
-- the two-door result rendered two buses and `180/180` seated;
-- all seven strategies completed a two-run browser comparison: 14 valid, 0 timed out, 0 invalid;
-- timing, preparation, embarkation, frustration, burden, peak, uncertainty, and provenance surfaces rendered;
-- no browser console errors occurred;
-- controls and primary results remained visible on the mobile breakpoint.
+- scattered passengers form three visibly different queues;
+- lane transitions follow their own preparation and first-entry timestamps;
+- the live 0–100 frustration index remains separate from accumulated F·minutes;
+- passenger inspector values come from serialized replay frames;
+- preparation-finished, boarding-started, and boarding-finished values match the API;
+- preparation, embarkation, and total burden are all visible and labeled “model-predicted” and “provisional”;
+- timing table includes P10–P90, 95% mean intervals, and valid/timed-out/invalid counts;
+- one-second preparation timeout produces no boarding events and no winner;
+- canvas has a live text-table alternative;
+- phone document width equals its 390 px viewport;
+- keyboard-focusable scroll regions, visible focus, reduced-motion behavior, and contrast checks pass;
+- no console/page errors occurred.
 
 ## Scientific acceptance status
 
-This report verifies software behavior, not scientific or operational validity.
+- Layer 1 software invariants: implemented and passing.
+- Layer 2 published reference-condition reproduction: still required.
+- Layer 3 target-operation gate observation/calibration: still required.
+- Layer 4 passenger frustration calibration and held-out validation: still required.
 
-- Validation Layer 1: implemented automated invariant coverage.
-- Validation Layer 2: published reference-condition reproduction remains future validation work.
-- Validation Layer 3: target-operation gate observation/calibration remains future work.
-- Validation Layer 4: passenger frustration calibration/held-out validation remains future work.
-
-The UI and result schema therefore keep frustration labeled provisional and do not authorize operational strategy claims.
+The UI therefore calls frustration `model-predicted` and `provisional`, attributes burden to time periods rather than claiming causation, and disallows operational claims.

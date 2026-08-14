@@ -95,7 +95,7 @@
           </aside>
         </div>
 
-        <div class="table-wrap content-width">
+        <div class="table-wrap content-width" role="region" aria-label="Scrollable live strategy table" tabindex="0">
           <table id="race-live-table" class="race-live-table">
             <caption>Live text alternative for the three boarding lanes</caption>
             <thead>
@@ -126,7 +126,7 @@
 
         <div id="result-comparison" class="result-comparison" aria-live="polite"></div>
 
-        <div class="table-wrap result-table-wrap">
+        <div class="table-wrap result-table-wrap" role="region" aria-label="Scrollable timing and frustration results" tabindex="0">
           <table id="timing-table" class="timing-table">
             <caption>Authoritative timing and model-predicted frustration results</caption>
             <thead><tr><th scope="col">Measure</th><th scope="col">Random</th><th scope="col">Back-to-front</th><th scope="col">Strict Steffen</th></tr></thead>
@@ -192,8 +192,8 @@
               <section><h3>Frustration burden</h3><svg id="burden-histogram" viewBox="0 0 700 280" role="img" aria-label="Passenger burden distribution"></svg></section>
               <section><h3>Peak frustration</h3><svg id="peak-histogram" viewBox="0 0 700 280" role="img" aria-label="Passenger peak frustration distribution"></svg></section>
             </div>
-            <div class="table-wrap"><table id="monte-carlo-table"><caption>Monte Carlo comparison</caption><tbody></tbody></table></div>
-            <div class="table-wrap"><table id="provenance-table"><caption>Parameter provenance</caption><tbody></tbody></table></div>
+            <div class="table-wrap" role="region" aria-label="Scrollable Monte Carlo results" tabindex="0"><table id="monte-carlo-table"><caption>Monte Carlo comparison</caption><tbody></tbody></table></div>
+            <div class="table-wrap" role="region" aria-label="Scrollable parameter provenance" tabindex="0"><table id="provenance-table"><caption>Parameter provenance</caption><tbody></tbody></table></div>
           </div>
         </details>
       </section>

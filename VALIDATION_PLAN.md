@@ -16,6 +16,11 @@ Required automated tests:
 - service timers cannot become negative before completion logic;
 - custom 15 s rule transitions exactly at 60%, 70%, 80%, 90%;
 - Monte Carlo aggregation excludes failed/timed-out runs and reports their count.
+- all public strategies clone one strategy-neutral passenger manifest;
+- each public lane begins access no earlier than its own preparation finish;
+- a preparation timeout creates no access or aircraft events and no winner;
+- preparation burden plus embarkation burden equals total burden;
+- replay starts at T=0, traces every passenger, and remains deterministic.
 
 ## Layer 2 — aircraft boarding model validation
 

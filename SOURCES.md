@@ -1,5 +1,9 @@
 # Research sources used for the model structure
 
+## Presentation inspiration
+
+The public three-lane comparison is inspired by Adam Jacobs’s visualization of Random, Back-to-front, and Strict Steffen boarding. That presentation uses a boarding-only clock. Boarding Lab does not reproduce its results; it extends the modeled boundary backward to the preparation announcement and adds provisional passenger-frustration outputs.
+
 ## Aircraft boarding core
 
 ### Michael Schultz — Field Trial Measurements to Validate a Stochastic Aircraft Boarding Model

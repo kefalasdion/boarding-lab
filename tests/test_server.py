@@ -73,6 +73,9 @@ class ServerTests(unittest.TestCase):
             ["random_front", "back_to_front_zones", "strict_steffen"],
         )
         self.assertIn(payload["winner"], payload["strategies"])
+        self.assertNotIn("parameter_provenance", payload["strategies"]["random_front"])
+        self.assertIn("state_codebook", payload["strategies"]["random_front"]["replay"])
+        self.assertLess(len(json.dumps(payload, separators=(",", ":"))), 6_000_000)
 
     def test_validation_errors_are_structured_http_400_responses(self):
         request = urllib.request.Request(
@@ -119,6 +122,52 @@ class ServerTests(unittest.TestCase):
             self.assertTrue(response.headers["ETag"])
             self.assertEqual(response.headers.get_content_type(), "application/json")
             self.assertGreater(len(response.read()), 1_000_000)
+
+        conditional = urllib.request.Request(
+            self.base_url + "/data/default-comparison.json",
+            headers={"If-None-Match": response.headers["ETag"]},
+        )
+        with self.assertRaises(urllib.error.HTTPError) as caught:
+            urllib.request.urlopen(conditional, timeout=10)
+        self.assertEqual(caught.exception.code, 304)
+        caught.exception.close()
+
+    def test_public_comparison_run_cap_is_structured_validation(self):
+        request = urllib.request.Request(
+            self.base_url + "/api/compare-monte-carlo",
+            data=json.dumps({"scenario": {}, "runs": 201, "baseSeed": 1}).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with self.assertRaises(urllib.error.HTTPError) as caught:
+            urllib.request.urlopen(request, timeout=10)
+        self.assertEqual(caught.exception.code, 400)
+        with caught.exception as response:
+            payload = json.load(response)
+        self.assertEqual(payload["issues"][0]["path"], "runs")
+
+    def test_malformed_json_and_unknown_api_routes_are_rejected(self):
+        malformed = urllib.request.Request(
+            self.base_url + "/api/run",
+            data=b"{not-json",
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with self.assertRaises(urllib.error.HTTPError) as caught:
+            urllib.request.urlopen(malformed, timeout=10)
+        self.assertEqual(caught.exception.code, 400)
+        caught.exception.close()
+        with self.assertRaises(urllib.error.HTTPError) as caught:
+            urllib.request.urlopen(self.base_url + "/api/unknown", timeout=10)
+        self.assertEqual(caught.exception.code, 404)
+        caught.exception.close()
+
+    def test_security_headers_cover_html_and_json(self):
+        for path in ("/", "/api/config"):
+            with urllib.request.urlopen(self.base_url + path, timeout=10) as response:
+                self.assertEqual(response.headers["X-Frame-Options"], "DENY")
+                self.assertEqual(response.headers["Referrer-Policy"], "no-referrer")
+                self.assertIn("frame-ancestors 'none'", response.headers["Content-Security-Policy"])
 
 
 if __name__ == "__main__":

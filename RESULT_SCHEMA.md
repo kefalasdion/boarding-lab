@@ -18,6 +18,7 @@ The Python API returns typed dataclasses from `boarding_sim.models`. The JSON AP
 | `parameter_provenance` | Complete provenance registry used for the run. |
 | `passengers` | Individual final passenger records, including T=0 fields and experience metrics. |
 | `phases` | The three conceptual model parts described below. |
+| `replay` | Compact authoritative gate frames, frustration frames, aircraft events, codebooks, and passenger tracks. |
 | `trajectory` | Chronological mean/P90 frustration and progress samples. |
 | `metrics` | Timing, passenger-experience, readiness, and run-status summaries. |
 | `diagnostics` | Deterministic stream and audit information that does not change metric definitions. |
@@ -32,7 +33,7 @@ Always has `time_seconds: 0`. It contains passenger count and distributions for 
 
 Contains the explicit policy, duration, timeout state, final readiness, strategy complexity, correction count, progress samples, and preparation events.
 
-The reference policy is `strict_preparation`. Its duration ends only when both the overall target and first-cohort target pass, or when its timeout is reached.
+The expert default is `strict_preparation`. The public comparison uses `complete_preparation`, which requires every passenger to reach their strategy-defined slot. A preparation timeout leaves embarkation `status: "not_started"`, with empty access/aircraft events and null unobserved timings.
 
 ### `phases.part3_embarkation`
 
@@ -87,6 +88,25 @@ F_i(t) = sigmoid((X_i(t) - tau_i) / slope)
 ```
 
 `X_i` and `tau_i` remain separate. Tolerance is not multiplied into stress growth.
+
+The burden fields are:
+
+- `preparation_frustration_burden_f_minutes`;
+- `embarkation_frustration_burden_f_minutes`;
+- `total_frustration_burden_f_minutes`;
+- legacy alias `frustration_burden_f_minutes`, equal to total.
+
+For every passenger and distribution mean, preparation burden plus embarkation burden equals total burden within floating-point tolerance. These are time attributions (“accumulated during”), not causal claims (“caused by”).
+
+## Fair comparison result
+
+`run_comparison(scenario_patch, seed)` returns fixed `strategy_order` values `random_front`, `back_to_front_zones`, and `strict_steffen`. All three contain the same `manifest_fingerprint`. `winner` and the server-provided ordering are present only when all strategies are valid.
+
+`run_comparison_monte_carlo` adds per-strategy timing, burden, correction, and companion-separation summaries, win counts, and valid/timed-out/invalid run counts. Its public API cap is 200 runs.
+
+## Replay contract
+
+`replay` begins at T=0 and ends at the observed final seat or preparation timeout. `gate.frames` serialize time, live mean frustration, mean accumulated burden, and per-passenger position/state. `frustration_frames` continue the same two live aggregates through embarkation. `aircraft_events` use `event_codebook`; browser code may interpolate between frames but may not recalculate states, frustration, timings, or the winner.
 
 ## Monte Carlo result
 
