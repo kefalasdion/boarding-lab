@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="/race.css">
     <link rel="stylesheet" href="/expert.css">
+    <link rel="stylesheet" href="/capture.css">
     <script type="module" src="/js/app.js"></script>
   </head>
   <body>
@@ -75,9 +76,18 @@
             <span>Gate</span><span>Queue &amp; access</span><span>Aircraft</span>
           </div>
           <div class="lane-key" aria-hidden="true">
-            <div><strong>Random</strong><span>One loose queue</span></div>
-            <div><strong>Back-to-front</strong><span>Six row zones</span></div>
-            <div><strong>Strict Steffen</strong><span>Theoretical sequence</span></div>
+            <div>
+              <strong>Random</strong><span>One loose queue</span>
+              <p class="lane-frustration"><small>Frustration</small><output id="lane-frustration-random_front">0%</output></p>
+            </div>
+            <div>
+              <strong>Back-to-front</strong><span>Six row zones</span>
+              <p class="lane-frustration"><small>Frustration</small><output id="lane-frustration-back_to_front_zones">0%</output></p>
+            </div>
+            <div>
+              <strong>Strict Steffen</strong><span>Theoretical sequence</span>
+              <p class="lane-frustration"><small>Frustration</small><output id="lane-frustration-strict_steffen">0%</output></p>
+            </div>
           </div>
           <canvas id="race-canvas" width="1440" height="690" aria-label="Animated comparison of three passenger boarding strategies" aria-hidden="true"></canvas>
         </div>

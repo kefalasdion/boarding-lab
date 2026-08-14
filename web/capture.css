@@ -1,0 +1,45 @@
+/* Recording layout for the LinkedIn video. Applied only with ?capture=1.
+   The interactive page is untouched when the parameter is absent. */
+
+.capture { width: 1080px; min-height: 1350px; overflow: hidden; }
+.capture .site-header,
+.capture .premise,
+.capture .race-heading,
+.capture .clock-dock .playback-controls,
+.capture .table-wrap,
+.capture .passenger-inspector,
+.capture .scenario-section,
+.capture .expert-section,
+.capture .method-section,
+.capture .site-footer,
+.capture .result-actions,
+.capture .heatmap-layout,
+.capture .evidence-disclosure { display: none !important; }
+
+.capture main { display: block; }
+.capture .race-section { padding: 30px 34px 26px; }
+.capture .clock-dock { justify-content: flex-start; margin-bottom: 26px; }
+.capture .master-clock-wrap output { font-size: 62px; }
+.capture .race-support { grid-template-columns: 1fr; padding-top: 20px; }
+
+/* Bigger lanes: the live table is gone, so the race takes the space back. */
+.capture .lane-key { width: 236px; padding: 12px 20px; }
+.capture .lane-key strong { font-size: 25px; }
+.capture .lane-key span { font-size: 13px; }
+.capture .lane-frustration { margin-top: 12px; }
+.capture .lane-frustration small { font-size: 10px; }
+.capture .lane-frustration output { font-size: 38px; }
+.capture #race-canvas { min-height: 900px; }
+.capture .legend-title strong { font-size: 20px; }
+.capture .legend-title span,
+.capture .legend-labels { font-size: 13px; }
+
+.capture[data-capture-stage="race"] .results-section { display: none !important; }
+
+.capture[data-capture-stage="result"] .race-stage,
+.capture[data-capture-stage="result"] .clock-dock,
+.capture[data-capture-stage="result"] .race-support,
+.capture[data-capture-stage="result"] .race-status { display: none !important; }
+.capture[data-capture-stage="result"] .results-section { display: block; padding: 46px 40px; }
+.capture[data-capture-stage="result"] #result-headline { font-size: 42px; }
+.capture[data-capture-stage="result"] .result-summary { font-size: 19px; }

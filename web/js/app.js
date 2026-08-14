@@ -18,7 +18,24 @@ const ROW_IDS = {
 };
 
 const byId = (id) => document.getElementById(id);
-const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function applyCaptureMode() {
+  const parameters = new URLSearchParams(window.location.search);
+  if (parameters.get('capture') !== '1') return {active: false, autoplay: false, speed: null};
+  document.body.classList.add('capture');
+  document.body.dataset.captureStage = 'race';
+  const speed = Number(parameters.get('speed'));
+  return {
+    active: true,
+    autoplay: parameters.get('autoplay') === '1',
+    speed: Number.isFinite(speed) && speed > 0 ? speed : null,
+  };
+}
+
+const captureSettings = applyCaptureMode();
+const reducedMotion = captureSettings.active
+  ? false
+  : window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 let comparison = null;
 let timeline = null;
 let renderer = null;
@@ -164,6 +181,19 @@ function updateInspector(time) {
   inspector.append(index, title, detail);
 }
 
+function updateLaneFrustration(strategyId, result, time) {
+  const element = byId(`lane-frustration-${strategyId}`);
+  if (!element) return;
+  const frame = liveFrameAt(result, time);
+  if (!frame) {
+    element.textContent = '—';
+    return;
+  }
+  const visual = frustrationVisual(frame[1], result.metrics.passenger_experience.threshold);
+  element.textContent = `${Math.round(frame[1] * 100)}%`;
+  element.style.color = visual.color;
+}
+
 function renderAt(time) {
   byId('master-clock').textContent = clockLabel(time);
   byId('timeline-scrubber').value = String(Math.round(time));
@@ -171,6 +201,7 @@ function renderAt(time) {
   if (comparison) {
     for (const strategyId of comparison.strategy_order) {
       updateLiveRow(strategyId, comparison.strategies[strategyId], time);
+      updateLaneFrustration(strategyId, comparison.strategies[strategyId], time);
     }
   }
   updateInspector(time);
@@ -216,6 +247,14 @@ function installComparison(data, summary = null) {
   byId('race-status').textContent = 'Ready · same passengers and one continuous clock';
   byId('model-version').textContent = data.model_version;
   renderAt(0);
+  if (captureSettings.speed) {
+    timeline.setSpeed(captureSettings.speed);
+    byId('playback-speed').value = String(captureSettings.speed);
+  }
+  if (captureSettings.autoplay) {
+    timeline.play();
+    beginAnimation();
+  }
 }
 
 function shareValues() {
