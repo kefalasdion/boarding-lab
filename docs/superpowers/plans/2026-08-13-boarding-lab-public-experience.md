@@ -19,6 +19,7 @@
 - `boarding_sim/gate.py` — gate geometry, seeded starting positions, queue-slot plans, collision-safe movement, and compact gate replay.
 - `boarding_sim/preparation.py` — use gate plans, enforce public 100% readiness, and record authoritative preparation state.
 - `boarding_sim/replay.py` — compose gate, access, aircraft, and passenger-frustration keyframes into a compact public replay.
+- `boarding_sim/metrics.py` — preserve total frustration metrics and add exact preparation/embarkation burden distributions.
 - `boarding_sim/engine.py` — expose an internal flight runner that accepts a cloned manifest while preserving `run_flight`.
 - `boarding_sim/comparison.py` — run the three public strategies against one manifest and aggregate many-run comparisons.
 - `boarding_sim/models.py` — focused dataclasses for gate/replay/comparison records.
@@ -355,6 +356,7 @@ class GatePassengerState:
     y_m: float
     state: str
     frustration: float
+    frustration_burden: float
 
 @dataclass(frozen=True)
 class GateFrame:
@@ -391,6 +393,8 @@ git commit -m "feat: simulate physical gate preparation"
 - Create: `boarding_sim/replay.py`
 - Modify: `boarding_sim/models.py`
 - Modify: `boarding_sim/aircraft.py`
+- Modify: `boarding_sim/preparation.py`
+- Modify: `boarding_sim/metrics.py`
 - Modify: `boarding_sim/engine.py`
 - Modify: `tests/test_engine.py`
 - Create: `tests/test_replay.py`
@@ -422,7 +426,7 @@ Expected: failure because `FlightResult` has no `replay`.
 
 Keep the existing `MovementEvent` audit, but expose a compact replay stream containing `entered`, aisle-cell changes, `row_service_started`, and `seated`. Do not serialize the internal verbose movement audit twice.
 
-At each configured replay sample, capture per-passenger frustration only as `[passenger_id, rounded_value, state_code]`. The renderer may linearly interpolate between recorded frustration values but may not calculate frustration.
+At each configured replay sample, capture per-passenger frustration as `[passenger_id, rounded_value, rounded_burden, state_code]`. Each frame also carries the authoritative mean active frustration and mean accumulated passenger burden. The renderer may linearly interpolate between recorded values but may not calculate frustration or integrate burden.
 
 - [ ] **Step 4: Compose phase tracks in `replay.py`**
 
@@ -443,18 +447,55 @@ The public JSON carries readable codebooks once and compact arrays thereafter. I
 
 Add `replay: dict[str, Any]` to `FlightResult`, build it after the aircraft phase, increment schema/model versions, and update determinism expectations.
 
+Extend `Passenger` with exact phase fields while preserving `frustration_burden` as the backward-compatible total:
+
+```python
+preparation_frustration_burden: float = 0.0
+embarkation_frustration_burden: float = 0.0
+```
+
+Immediately after preparation ends, assign each passenger's current total burden to `preparation_frustration_burden`. After embarkation ends, assign:
+
+```python
+passenger.embarkation_frustration_burden = max(
+    0.0,
+    passenger.frustration_burden - passenger.preparation_frustration_burden,
+)
+```
+
+Expose mean/P90 distributions in `metrics.passenger_experience` as `preparation_frustration_burden_f_minutes`, `embarkation_frustration_burden_f_minutes`, and `total_frustration_burden_f_minutes`. Keep the existing `frustration_burden_f_minutes` key as an alias of the total for compatibility.
+
+Add this focused integrity test to `tests/test_engine.py`:
+
+```python
+def test_phase_burdens_partition_total_burden_exactly(self):
+    result = run_flight({}, 5101)
+    for passenger in result.passengers:
+        self.assertAlmostEqual(
+            passenger.preparation_frustration_burden
+            + passenger.embarkation_frustration_burden,
+            passenger.frustration_burden,
+            places=10,
+        )
+    experience = result.metrics["passenger_experience"]
+    self.assertEqual(
+        experience["frustration_burden_f_minutes"],
+        experience["total_frustration_burden_f_minutes"],
+    )
+```
+
 - [ ] **Step 6: Run replay, engine, aircraft, and serialization tests**
 
 ```bash
 python3 -m unittest tests.test_replay tests.test_engine tests.test_aircraft tests.test_foundation -v
 ```
 
-Expected: all pass, all replay numbers finite, and the replay payload stays below the declared limit.
+Expected: all pass, all replay numbers finite, phase burdens partition the total, and the replay payload stays below the declared limit.
 
 - [ ] **Step 7: Commit the replay slice**
 
 ```bash
-git add boarding_sim/replay.py boarding_sim/models.py boarding_sim/aircraft.py boarding_sim/engine.py tests/test_replay.py tests/test_engine.py
+git add boarding_sim/replay.py boarding_sim/models.py boarding_sim/preparation.py boarding_sim/aircraft.py boarding_sim/metrics.py boarding_sim/engine.py tests/test_replay.py tests/test_engine.py
 git commit -m "feat: expose compact authoritative replay"
 ```
 
@@ -585,7 +626,7 @@ Expected: failures for missing public-race and result elements.
 
 - [ ] **Step 3: Build the semantic document structure**
 
-Use one `h1`, a concise premise, an immediate race section, a results section, a scenario section, a collapsed expert `details`, and methodology/sources footer. Provide a `table` fallback summarizing each strategy's phase, prepared/entered/seated counts, live mean frustration, and final metrics.
+Use one `h1`, a concise premise, an immediate race section, a results section, a scenario section, a collapsed expert `details`, and methodology/sources footer. Provide a `table` fallback summarizing each strategy's phase, prepared/entered/seated counts, live mean frustration, preparation-finished time, boarding-started time, boarding-finished time, preparation burden, embarkation burden, and total burden.
 
 The canvas has an accessible name but is `aria-hidden="true"` when the live table is present, preventing duplicate noisy announcements. Status changes are summarized in restrained `aria-live="polite"` text.
 
@@ -682,7 +723,7 @@ The renderer may interpolate coordinates and frustration values between recorded
 
 - [ ] **Step 6: Wire playback, live text, inspector, and reduced motion**
 
-`app.js` loads the default comparison, updates the shared clock, controls, live strategy summary, and passenger inspector. In reduced-motion mode, seeking jumps between event times and no pulse/continuous movement runs.
+`app.js` loads the default comparison, updates the shared clock, controls, live strategy summary, and passenger inspector. Each lane reads its serialized frame aggregates and displays `Math.round(mean_frustration * 100)` as the live `0–100` index plus serialized mean accumulated F·minutes beneath it. It must never integrate burden in JavaScript. In reduced-motion mode, seeking jumps between event times and no pulse/continuous movement runs.
 
 - [ ] **Step 7: Run JavaScript, web-contract, and syntax tests**
 
@@ -740,7 +781,9 @@ Expected: failures for missing modules/contracts.
 
 - [ ] **Step 3: Render evidence-aware dynamic results**
 
-`results.js` renders the server-provided conclusion and ranking only if all strategies are valid. It separately shows preparation, access, cabin, total, corrections, companion separations, frustration burden, peak, threshold share, P10–P90, confidence interval, and run counts. Missing summaries display `Unavailable`, never `0`.
+`results.js` renders the server-provided conclusion and ranking only if all strategies are valid. It separately shows preparation finished at, boarding started at, boarding finished at, preparation duration, access, cabin, total, corrections, companion separations, frustration accumulated during preparation, frustration accumulated during embarkation, total frustration burden, peak, threshold share, P10–P90, confidence interval, and run counts. Missing summaries display `Unavailable`, never `0`.
+
+Use only authoritative timestamps already present in each run: `metrics.timings_seconds.preparation`, `phases.part3_embarkation.aircraft.first_entry_time_seconds`, and `phases.part3_embarkation.aircraft.last_seat_time_seconds`. Labels say “accumulated during,” never “caused by,” and every frustration result remains visibly `model-predicted` and `provisional`.
 
 Render peak/burden cabin heatmaps from per-passenger results and maintain a real table with the same data for keyboard and screen-reader users.
 
@@ -847,6 +890,7 @@ Document:
 - the public three-way comparison and expert workspace;
 - `/api/compare` and `/api/compare-monte-carlo`;
 - replay codebooks, frames, and traceability;
+- exact phase-burden fields, their additive integrity rule, and the distinction between time attribution and causation;
 - Adam Jacobs inspiration credit and distinction from his boarding-only clock;
 - published aircraft inputs versus provisional preparation/frustration values;
 - regeneration of the default artifact;
@@ -902,6 +946,9 @@ Start the server on an unused port. Verify at a desktop viewport:
 - colors change from engine keyframes;
 - hover/tap inspector matches the selected passenger's serialized data;
 - pause, replay, seek, and 0.5×/1×/2×/4× work;
+- each lane shows a different authoritative preparation/boarding transition when the strategies finish preparation at different times;
+- preparation-finished, boarding-started, and boarding-finished timestamps match the API values;
+- live frustration is a `0–100` current index while preparation, embarkation, and total burden are labeled in F·minutes;
 - result headline and winner match the many-run data;
 - peak/burden heatmap switches;
 - methodology, sources, and inspiration links work;
