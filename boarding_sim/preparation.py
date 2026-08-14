@@ -21,6 +21,7 @@ from .models import (
     SimulationEvent,
 )
 from .prng import RNG
+from .release import release_events, release_schedule
 from .stats import mean, quantile
 from .strategies import Strategy, strategy_complexity
 
@@ -220,6 +221,8 @@ def simulate_preparation(
     complexity = strategy_complexity(strategy)
     families = _groups(passengers)
     events = apply_companion_separation_shock(passengers, strategy, calibration)
+    schedule = release_schedule(passengers, strategy, calibration)
+    events.extend(release_events(passengers, strategy, schedule))
     history = [_snapshot(passengers, 0.0)]
     total_corrections = 0
     time_seconds = 0.0
@@ -386,6 +389,8 @@ def simulate_preparation(
             evolve_passenger(
                 passenger, dt, load_rate, recovery, calibration, threshold
             )
+            if time_seconds < schedule[passenger.id]:
+                continue
             utility = (
                 decision["activationBase"]
                 + decision["frustration"] * passenger.frustration

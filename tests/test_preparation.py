@@ -135,5 +135,73 @@ class PreparationEngineTests(unittest.TestCase):
             )
 
 
+class ControlledLineFormationTests(unittest.TestCase):
+    def _run(self, strategy_id, seed=9107):
+        scenario = normalize_scenario()
+        scenario["preparation"]["policy"] = {
+            "mode": "complete_preparation",
+            "readinessTarget": 1.0,
+            "firstCohortTarget": 1.0,
+        }
+        calibration = load_behaviour_calibration()
+        strategy = strategy_by_id(strategy_id)
+        rng = RNG(seed)
+        passengers = generate_population(scenario, strategy, rng.fork(3), calibration)
+        result = simulate_preparation(
+            passengers, scenario, strategy, rng.fork(4), calibration
+        )
+        return passengers, result
+
+    def test_uncalled_passengers_cannot_start_forming_the_line(self):
+        _, result = self._run("strict_steffen")
+        calls = {
+            event.passenger_id: event.time_seconds
+            for event in result.events
+            if event.type == "preparation_passenger_called"
+        }
+        started = {
+            event.passenger_id: event.time_seconds
+            for event in result.events
+            if event.type == "preparation_started"
+        }
+        self.assertTrue(started, "some passengers must respond to their call")
+        for passenger_id, start_time in started.items():
+            self.assertGreaterEqual(
+                start_time,
+                calls[passenger_id],
+                f"passenger {passenger_id} moved before being called",
+            )
+
+    def test_strict_steffen_cannot_finish_before_its_final_call(self):
+        _, result = self._run("strict_steffen")
+        self.assertGreaterEqual(result.time_seconds, 716.0)
+
+    def test_random_receives_one_general_call_and_no_other_calls(self):
+        _, result = self._run("random_front")
+        call_types = [
+            event.type
+            for event in result.events
+            if event.type.startswith("preparation_") and "call" in event.type
+        ]
+        self.assertEqual(call_types, ["preparation_general_call"])
+
+    def test_back_to_front_zones_are_called_twenty_seconds_apart(self):
+        _, result = self._run("back_to_front_zones")
+        times = [
+            event.time_seconds
+            for event in result.events
+            if event.type == "preparation_zone_called"
+        ]
+        self.assertEqual(times, [0.0, 20.0, 40.0, 60.0, 80.0, 100.0])
+
+    def test_calls_do_not_break_determinism(self):
+        first = self._run("strict_steffen")[1]
+        second = self._run("strict_steffen")[1]
+        self.assertEqual(
+            canonical_json_bytes(first.history), canonical_json_bytes(second.history)
+        )
+        self.assertEqual(first.time_seconds, second.time_seconds)
+
+
 if __name__ == "__main__":
     unittest.main()
