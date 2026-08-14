@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import mimetypes
+import threading
 import traceback
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -11,6 +12,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 from urllib.parse import unquote, urlparse
 
+from .comparison import run_comparison, run_comparison_monte_carlo
 from .engine import MODEL_STATUS, MODEL_VERSION, SCHEMA_VERSION, run_flight
 from .monte_carlo import run_monte_carlo
 from .provenance import load_parameter_registry
@@ -21,6 +23,7 @@ from .validation import ScenarioValidationError, load_default_scenario
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 WEB_ROOT = PROJECT_ROOT / "web"
 MAX_BODY_BYTES = 1_000_000
+SIMULATION_SLOTS = threading.BoundedSemaphore(2)
 
 
 class SimulatorHandler(BaseHTTPRequestHandler):
@@ -40,6 +43,12 @@ class SimulatorHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header(
+            "Content-Security-Policy",
+            "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+        )
         self.end_headers()
         self.wfile.write(body)
 
@@ -92,6 +101,20 @@ class SimulatorHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = urlparse(self.path).path
+        if path not in {
+            "/api/run",
+            "/api/monte-carlo",
+            "/api/compare",
+            "/api/compare-monte-carlo",
+        }:
+            self._send_json(HTTPStatus.NOT_FOUND, {"error": "not_found"})
+            return
+        if not SIMULATION_SLOTS.acquire(blocking=False):
+            self._send_json(
+                HTTPStatus.SERVICE_UNAVAILABLE,
+                {"error": "busy", "message": "The simulator is already running two requests."},
+            )
+            return
         try:
             payload = self._read_json()
             if path == "/api/run":
@@ -102,9 +125,16 @@ class SimulatorHandler(BaseHTTPRequestHandler):
                     payload.get("runs"),
                     payload.get("baseSeed"),
                 )
+            elif path == "/api/compare":
+                result = run_comparison(
+                    payload.get("scenario", {}), payload.get("seed")
+                )
             else:
-                self._send_json(HTTPStatus.NOT_FOUND, {"error": "not_found"})
-                return
+                result = run_comparison_monte_carlo(
+                    payload.get("scenario", {}),
+                    payload.get("runs"),
+                    payload.get("baseSeed"),
+                )
             self._send_json(HTTPStatus.OK, result)
         except ScenarioValidationError as error:
             self._validation_error(error)
@@ -119,6 +149,8 @@ class SimulatorHandler(BaseHTTPRequestHandler):
                 HTTPStatus.INTERNAL_SERVER_ERROR,
                 {"error": "internal_error", "message": "The local simulation request failed."},
             )
+        finally:
+            SIMULATION_SLOTS.release()
 
     def _serve_static(self, raw_path: str) -> None:
         decoded = unquote(raw_path)

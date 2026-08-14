@@ -102,3 +102,54 @@ def build_metrics(
         "preparation_timed_out": preparation.timed_out,
         "aircraft_timed_out": aircraft.timed_out,
     }
+
+
+def build_preparation_timeout_metrics(
+    passengers: list[Passenger],
+    scenario: dict[str, Any],
+    preparation: PreparationResult,
+) -> dict[str, Any]:
+    """Describe an incomplete preparation without inventing boarding outcomes."""
+    threshold = scenario["metrics"]["frustrationThreshold"]
+    preparation_burden = summarize_distribution(
+        passenger.preparation_frustration_burden for passenger in passengers
+    )
+    zero_embarkation = summarize_distribution(0.0 for _passenger in passengers)
+    return {
+        "timings_seconds": {
+            "preparation": preparation.time_seconds,
+            "access_until_last_door_arrival": None,
+            "embarkation": None,
+            "cabin_boarding": None,
+            "total_t0_to_last_seat": None,
+        },
+        "passenger_experience": {
+            "initial_frustration": summarize_distribution(
+                passenger.initial_frustration for passenger in passengers
+            ),
+            "preparation_frustration_burden_f_minutes": preparation_burden,
+            "embarkation_frustration_burden_f_minutes": zero_embarkation,
+            "total_frustration_burden_f_minutes": preparation_burden,
+            "frustration_burden_f_minutes": preparation_burden,
+            "peak_frustration": summarize_distribution(
+                passenger.peak_frustration for passenger in passengers
+            ),
+            "time_above_threshold_minutes": summarize_distribution(
+                passenger.time_above_threshold_seconds / 60.0
+                for passenger in passengers
+            ),
+            "threshold": threshold,
+            "share_peak_above_threshold": sum(
+                passenger.peak_frustration > threshold for passenger in passengers
+            )
+            / len(passengers),
+        },
+        "correction_events": preparation.corrections,
+        "companion_overrides": sum(
+            passenger.companion_override for passenger in passengers
+        ),
+        "seated_count": 0,
+        "passenger_count": len(passengers),
+        "preparation_timed_out": True,
+        "aircraft_timed_out": False,
+    }

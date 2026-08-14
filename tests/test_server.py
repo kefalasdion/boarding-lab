@@ -37,7 +37,7 @@ class ServerTests(unittest.TestCase):
         status, payload = self.request_json("/api/config")
         self.assertEqual(status, 200)
         self.assertEqual(payload["defaultScenario"]["preparation"]["policy"]["mode"], "strict_preparation")
-        self.assertEqual(len(payload["strategies"]), 7)
+        self.assertEqual(len(payload["strategies"]), 8)
         self.assertTrue(payload["parameterProvenance"])
         self.assertFalse(payload["modelStatus"]["frustration_validated"])
 
@@ -61,6 +61,18 @@ class ServerTests(unittest.TestCase):
             payload["valid_runs"] + payload["timed_out_runs"] + payload["invalid_runs"],
             2,
         )
+
+    def test_compare_endpoint_returns_the_public_three_lane_race(self):
+        status, payload = self.request_json(
+            "/api/compare",
+            {"scenario": {"aircraft": {"loadFactor": 0.1}}, "seed": 8350},
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(
+            payload["strategy_order"],
+            ["random_front", "back_to_front_zones", "strict_steffen"],
+        )
+        self.assertIn(payload["winner"], payload["strategies"])
 
     def test_validation_errors_are_structured_http_400_responses(self):
         request = urllib.request.Request(

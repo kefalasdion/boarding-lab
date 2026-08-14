@@ -192,3 +192,59 @@ def build_replay(
             for passenger in passengers
         },
     }
+
+
+def build_preparation_only_replay(
+    passengers: list[Passenger], preparation: PreparationResult
+) -> dict[str, Any]:
+    """Return the observed gate replay when embarkation never started."""
+    gate_frames = _gate_frames(preparation)
+    return {
+        "starts_at_seconds": 0,
+        "ends_at_seconds": preparation.time_seconds,
+        "state_codebook": dict(REPLAY_STATE_CODES),
+        "event_codebook": dict(EVENT_CODES),
+        "driver_labels": [
+            "instruction_complexity",
+            "correction",
+            "waiting",
+            "crowding",
+            "aisle_blocked",
+            "row_service",
+            "visible_progress",
+        ],
+        "gate": {
+            "layout": preparation.gate_replay.layout,
+            "slots": [
+                [
+                    slot.passenger_id,
+                    slot.slot_index,
+                    slot.cohort,
+                    slot.point.x_m,
+                    slot.point.y_m,
+                ]
+                for slot in preparation.gate_replay.slots
+            ],
+            "frames": gate_frames,
+        },
+        "frustration_frames": [
+            [
+                frame[0],
+                frame[1],
+                frame[2],
+                [[state[0], state[3], state[4], state[5]] for state in frame[3]],
+            ]
+            for frame in gate_frames
+        ],
+        "aircraft_events": [],
+        "passenger_tracks": {
+            str(passenger.id): [
+                passenger.row,
+                passenger.seat,
+                passenger.family_id,
+                passenger.boarding_rank,
+                passenger.assigned_door,
+            ]
+            for passenger in passengers
+        },
+    }
