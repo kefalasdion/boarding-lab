@@ -1,9 +1,11 @@
+import copy
 import unittest
 
-from boarding_sim.population import generate_population
+from boarding_sim.population import assign_strategy, generate_manifest, generate_population
 from boarding_sim.preparation import (
     CompletePreparationPolicy,
     StrictPreparationPolicy,
+    apply_companion_separation_shock,
     readiness_policy_from_config,
     simulate_preparation,
 )
@@ -61,6 +63,7 @@ class PreparationEngineTests(unittest.TestCase):
         return passengers, result
 
     def setUp(self):
+        self.scenario = normalize_scenario()
         self.calibration = load_behaviour_calibration()
 
     def test_baseline_reaches_strict_readiness_with_progress_history(self):
@@ -90,6 +93,46 @@ class PreparationEngineTests(unittest.TestCase):
         self.assertTrue(result.timed_out)
         self.assertFalse(result.readiness.ready)
         self.assertEqual(result.time_seconds, 1)
+
+    def test_only_genuinely_separated_family_members_receive_starting_shock(self):
+        manifest = generate_manifest(self.scenario, RNG(44), self.calibration)
+        strict_passengers = assign_strategy(
+            copy.deepcopy(manifest), strategy_by_id("strict_steffen"), RNG(91)
+        )
+        random_passengers = assign_strategy(
+            copy.deepcopy(manifest), strategy_by_id("random_front"), RNG(91)
+        )
+        strict_before = {
+            passenger.id: passenger.stress_load for passenger in strict_passengers
+        }
+        strict_frustration_before = {
+            passenger.id: passenger.frustration for passenger in strict_passengers
+        }
+
+        strict_events = apply_companion_separation_shock(
+            strict_passengers, strategy_by_id("strict_steffen"), self.calibration
+        )
+        random_events = apply_companion_separation_shock(
+            random_passengers, strategy_by_id("random_front"), self.calibration
+        )
+
+        affected = [
+            passenger
+            for passenger in strict_passengers
+            if passenger.family_id and passenger.companion_override
+        ]
+        self.assertTrue(affected)
+        self.assertEqual(len(strict_events), len(affected))
+        self.assertFalse(random_events)
+        for passenger in affected:
+            self.assertAlmostEqual(
+                passenger.stress_load,
+                strict_before[passenger.id] + 0.25,
+            )
+            self.assertGreater(
+                passenger.frustration,
+                strict_frustration_before[passenger.id],
+            )
 
 
 if __name__ == "__main__":

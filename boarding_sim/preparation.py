@@ -6,7 +6,7 @@ import math
 from dataclasses import dataclass
 from typing import Any, Protocol
 
-from .frustration import clamp, evolve_passenger, logistic
+from .frustration import clamp, evolve_passenger, frustration_from_load, logistic
 from .gate import build_gate_plan
 from .models import (
     GateFrame,
@@ -78,6 +78,35 @@ def readiness_policy_from_config(config: dict[str, Any]) -> PreparationPolicy:
     if config["mode"] == "complete_preparation":
         return CompletePreparationPolicy()
     raise ValueError(f"Unsupported preparation policy {config['mode']}")
+
+
+def apply_companion_separation_shock(
+    passengers: list[Passenger],
+    strategy: Strategy,
+    calibration: dict[str, Any],
+) -> list[SimulationEvent]:
+    """Apply the provisional stress cost of a strategy-enforced family split."""
+    if strategy.companion_policy != "separate":
+        return []
+    shock = calibration["companionSeparationShock"]
+    events: list[SimulationEvent] = []
+    for passenger in passengers:
+        if not passenger.family_id or not passenger.companion_override:
+            continue
+        passenger.stress_load = clamp(passenger.stress_load + shock, 0.0, 2.0)
+        passenger.frustration = frustration_from_load(passenger, calibration)
+        passenger.peak_frustration = max(
+            passenger.peak_frustration, passenger.frustration
+        )
+        events.append(
+            SimulationEvent(
+                "companion_separation_shock",
+                0.0,
+                passenger.id,
+                {"stress_load_shock": shock},
+            )
+        )
+    return events
 
 
 def _groups(passengers: list[Passenger]) -> dict[int, list[Passenger]]:
@@ -190,8 +219,8 @@ def simulate_preparation(
     policy = readiness_policy_from_config(config["policy"])
     complexity = strategy_complexity(strategy)
     families = _groups(passengers)
+    events = apply_companion_separation_shock(passengers, strategy, calibration)
     history = [_snapshot(passengers, 0.0)]
-    events: list[SimulationEvent] = []
     total_corrections = 0
     time_seconds = 0.0
     dt = 1.0

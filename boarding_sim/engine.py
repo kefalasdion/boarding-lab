@@ -27,7 +27,7 @@ from .validation import (
 )
 
 SCHEMA_VERSION = "1.1.0"
-MODEL_VERSION = "pbs-v2-python-1.1.0"
+MODEL_VERSION = "pbs-v2-python-1.2.0"
 
 MODEL_STATUS = {
     "application": "research_and_calibration_tool",

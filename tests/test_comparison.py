@@ -43,6 +43,26 @@ class ComparisonTests(unittest.TestCase):
                 result["metrics"]["timings_seconds"]["total_t0_to_last_seat"]
             )
 
+    def test_family_separation_shock_occurs_only_for_strict_steffen(self):
+        comparison = run_comparison({}, seed=20260841)
+
+        for strategy_id in ("random_front", "back_to_front_zones"):
+            events = comparison["strategies"][strategy_id]["phases"][
+                "part2_preparation"
+            ]["events"]
+            self.assertFalse(
+                any(event["type"] == "companion_separation_shock" for event in events)
+            )
+
+        strict = comparison["strategies"]["strict_steffen"]
+        events = strict["phases"]["part2_preparation"]["events"]
+        self.assertEqual(
+            sum(
+                event["type"] == "companion_separation_shock" for event in events
+            ),
+            strict["metrics"]["companion_overrides"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
