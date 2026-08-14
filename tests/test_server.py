@@ -114,6 +114,16 @@ class ServerTests(unittest.TestCase):
         self.assertIn("Boarding Lab", body)
         self.assertIn('id="scenario-form"', body)
 
+    def test_public_methodology_documents_are_readable(self):
+        for path, expected in (
+            ("/SOURCES.md", "Research sources"),
+            ("/VALIDATION_PLAN.md", "Validation Plan"),
+            ("/RESULT_SCHEMA.md", "Public Result Schema"),
+        ):
+            with urllib.request.urlopen(self.base_url + path, timeout=10) as response:
+                self.assertEqual(response.status, 200)
+                self.assertIn(expected, response.read().decode("utf-8"))
+
     def test_default_artifact_has_public_cache_headers_and_etag(self):
         request = urllib.request.Request(self.base_url + "/data/default-comparison.json")
         with urllib.request.urlopen(request, timeout=10) as response:

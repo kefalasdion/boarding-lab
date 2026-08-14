@@ -29,6 +29,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 WEB_ROOT = PROJECT_ROOT / "web"
 MAX_BODY_BYTES = 1_000_000
 SIMULATION_SLOTS = threading.BoundedSemaphore(2)
+PUBLIC_DOCUMENTS = {"SOURCES.md", "VALIDATION_PLAN.md", "RESULT_SCHEMA.md"}
 
 
 class SimulatorHandler(BaseHTTPRequestHandler):
@@ -170,9 +171,14 @@ class SimulatorHandler(BaseHTTPRequestHandler):
             return
         if str(relative) in {"", "."}:
             relative = PurePosixPath("index.html")
-        candidate = WEB_ROOT.joinpath(*relative.parts).resolve()
+        static_root = (
+            PROJECT_ROOT
+            if len(relative.parts) == 1 and relative.name in PUBLIC_DOCUMENTS
+            else WEB_ROOT
+        )
+        candidate = static_root.joinpath(*relative.parts).resolve()
         try:
-            candidate.relative_to(WEB_ROOT.resolve())
+            candidate.relative_to(static_root.resolve())
         except ValueError:
             self._send_json(HTTPStatus.FORBIDDEN, {"error": "forbidden"})
             return
