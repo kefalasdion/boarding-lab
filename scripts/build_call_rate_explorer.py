@@ -89,6 +89,7 @@ class LaneBaker:
     """Resolve one strategy's passengers to lane coordinates at any clock time."""
 
     def __init__(self, result: dict[str, Any]) -> None:
+        self.trajectory = result["trajectory"]
         replay = result["replay"]
         self.replay = replay
         self.gate_frames = replay["gate"]["frames"]
@@ -160,6 +161,21 @@ class LaneBaker:
             aisle_cell = progress * max(0.0, (track[0] - 1) * 2)
         return AISLE_U0 + min(1.0, aisle_cell / AISLE_CELLS) * AISLE_USPAN, 0.5
 
+    def counts(self, time: float) -> tuple[int, int]:
+        """Passengers correctly staged, and passengers seated, at this instant.
+
+        Both are model outputs sampled on the trajectory, held rather than
+        interpolated: a count that reads 143.6 is not a count.
+        """
+        prepared = 0
+        seated = 0
+        for sample in self.trajectory:
+            if sample["time_seconds"] > time:
+                break
+            prepared = sample["prepared_count"]
+            seated = sample["seated_count"]
+        return prepared, seated
+
     def frustration(self, passenger_id: int, time: float) -> float:
         gate_phase = time <= self.preparation_end
         frames = self.gate_frames if gate_phase else self.frustration_frames
@@ -204,6 +220,13 @@ def _bake_strategy(result: dict[str, Any], times: list[float]) -> dict[str, Any]
         vs.extend(_delta(track_v))
         fs.extend(_delta(track_f))
 
+    prepared: list[int] = []
+    seated: list[int] = []
+    for time in times:
+        staged, sat = baker.counts(time)
+        prepared.append(staged)
+        seated.append(sat)
+
     metrics = result["metrics"]
     timings = metrics["timings_seconds"]
     experience = metrics["passenger_experience"]
@@ -234,6 +257,8 @@ def _bake_strategy(result: dict[str, Any], times: list[float]) -> dict[str, Any]
         "u": us,
         "v": vs,
         "f": fs,
+        "prepared": _delta(prepared),
+        "seated": _delta(seated),
     }
 
 
