@@ -40,6 +40,7 @@ class Passenger:
     prep_distance_m: float = 0.0
     move_remaining_s: float = 0.0
     correct_remaining_s: float = 0.0
+    blocked_seconds: float = 0.0
     raw_cohort: int = 0
     random_key: float = 0.0
     raw_rank: float = 0.0

@@ -40,6 +40,26 @@ def summarize_distribution(values: Iterable[float]) -> DistributionSummary | Non
     )
 
 
+def companion_separations(passengers: list[Passenger]) -> int:
+    """Count passengers whose travelling companions are not adjacent in the queue.
+
+    Distinct from `companion_overrides`, which counts passengers *moved* by the
+    companion policy — usually in order to keep a group together. A method that
+    preserves companions has overrides but no separations.
+    """
+    families: dict[int, list[Passenger]] = {}
+    for passenger in passengers:
+        if passenger.family_id:
+            families.setdefault(passenger.family_id, []).append(passenger)
+    separated = 0
+    for members in families.values():
+        ranks = sorted(member.boarding_rank for member in members)
+        contiguous = ranks == [ranks[0] + offset for offset in range(len(ranks))]
+        if not contiguous:
+            separated += len(members)
+    return separated
+
+
 def build_metrics(
     passengers: list[Passenger],
     scenario: dict[str, Any],
@@ -97,11 +117,13 @@ def build_metrics(
         "companion_overrides": sum(
             passenger.companion_override for passenger in passengers
         ),
+        "companion_separations": companion_separations(passengers),
         "seated_count": aircraft.seated_count,
         "passenger_count": len(passengers),
         "preparation_timed_out": preparation.timed_out,
         "aircraft_timed_out": aircraft.timed_out,
     }
+
 
 
 def build_preparation_timeout_metrics(
@@ -148,6 +170,7 @@ def build_preparation_timeout_metrics(
         "companion_overrides": sum(
             passenger.companion_override for passenger in passengers
         ),
+        "companion_separations": companion_separations(passengers),
         "seated_count": 0,
         "passenger_count": len(passengers),
         "preparation_timed_out": True,

@@ -11,12 +11,13 @@ from boarding_sim.strategies import strategy_by_id
 from boarding_sim.validation import load_behaviour_calibration, normalize_scenario
 
 
-def _population(strategy_id):
-    scenario = normalize_scenario()
+def _population(strategy_id, release_patch=None):
+    patch = {"preparation": {"release": release_patch}} if release_patch else None
+    scenario = normalize_scenario(patch)
     calibration = load_behaviour_calibration()
     strategy = strategy_by_id(strategy_id)
     passengers = generate_population(scenario, strategy, RNG(4242), calibration)
-    return passengers, strategy, calibration
+    return passengers, strategy, scenario["preparation"]["release"]
 
 
 class ReleaseModeTests(unittest.TestCase):
@@ -37,14 +38,14 @@ class ReleaseModeTests(unittest.TestCase):
 
 class ReleaseScheduleTests(unittest.TestCase):
     def test_random_releases_every_passenger_at_zero(self):
-        passengers, strategy, calibration = _population("random_front")
-        schedule = release_schedule(passengers, strategy, calibration)
+        passengers, strategy, release = _population("random_front")
+        schedule = release_schedule(passengers, strategy, release)
         self.assertEqual(set(schedule.values()), {0.0})
         self.assertEqual(len(schedule), len(passengers))
 
     def test_back_to_front_releases_zones_twenty_seconds_apart_rear_first(self):
-        passengers, strategy, calibration = _population("back_to_front_zones")
-        schedule = release_schedule(passengers, strategy, calibration)
+        passengers, strategy, release = _population("back_to_front_zones")
+        schedule = release_schedule(passengers, strategy, release)
         by_cohort = {}
         for passenger in passengers:
             by_cohort.setdefault(passenger.prep_cohort, set()).add(schedule[passenger.id])
@@ -59,8 +60,8 @@ class ReleaseScheduleTests(unittest.TestCase):
         Family members can be pulled forward into an earlier cohort by the
         existing companion rule, so this checks passengers travelling alone.
         """
-        passengers, strategy, calibration = _population("back_to_front_zones")
-        schedule = release_schedule(passengers, strategy, calibration)
+        passengers, strategy, release = _population("back_to_front_zones")
+        schedule = release_schedule(passengers, strategy, release)
         solo = [passenger for passenger in passengers if not passenger.family_id]
         self.assertTrue(solo, "the population must contain passengers travelling alone")
         for passenger in solo:
@@ -70,8 +71,8 @@ class ReleaseScheduleTests(unittest.TestCase):
         self.assertTrue(min(first_called) >= 26, "the first zone called must be the rear")
 
     def test_strict_steffen_releases_one_passenger_every_four_seconds(self):
-        passengers, strategy, calibration = _population("strict_steffen")
-        schedule = release_schedule(passengers, strategy, calibration)
+        passengers, strategy, release = _population("strict_steffen")
+        schedule = release_schedule(passengers, strategy, release)
         times = sorted(schedule.values())
         self.assertEqual(len(set(times)), len(passengers))
         self.assertEqual(times[0], 0.0)
@@ -79,17 +80,17 @@ class ReleaseScheduleTests(unittest.TestCase):
         self.assertEqual(times, [index * 4.0 for index in range(len(passengers))])
 
     def test_release_times_follow_exact_boarding_order(self):
-        passengers, strategy, calibration = _population("strict_steffen")
-        schedule = release_schedule(passengers, strategy, calibration)
+        passengers, strategy, release = _population("strict_steffen")
+        schedule = release_schedule(passengers, strategy, release)
         for passenger in passengers:
             self.assertEqual(schedule[passenger.id], passenger.boarding_rank * 4.0)
 
 
 class ReleaseEventTests(unittest.TestCase):
     def test_random_emits_exactly_one_general_call(self):
-        passengers, strategy, calibration = _population("random_front")
+        passengers, strategy, release = _population("random_front")
         events = release_events(
-            passengers, strategy, release_schedule(passengers, strategy, calibration)
+            passengers, strategy, release_schedule(passengers, strategy, release)
         )
         self.assertEqual(len(events), 1)
         self.assertEqual(events[0].type, "preparation_general_call")
@@ -98,9 +99,9 @@ class ReleaseEventTests(unittest.TestCase):
         self.assertEqual(events[0].details["passenger_count"], len(passengers))
 
     def test_back_to_front_emits_one_call_per_zone(self):
-        passengers, strategy, calibration = _population("back_to_front_zones")
+        passengers, strategy, release = _population("back_to_front_zones")
         events = release_events(
-            passengers, strategy, release_schedule(passengers, strategy, calibration)
+            passengers, strategy, release_schedule(passengers, strategy, release)
         )
         self.assertEqual([event.type for event in events], ["preparation_zone_called"] * 6)
         self.assertEqual(
@@ -112,9 +113,9 @@ class ReleaseEventTests(unittest.TestCase):
         self.assertTrue(all(event.passenger_id is None for event in events))
 
     def test_strict_steffen_emits_one_call_per_passenger_in_order(self):
-        passengers, strategy, calibration = _population("strict_steffen")
+        passengers, strategy, release = _population("strict_steffen")
         events = release_events(
-            passengers, strategy, release_schedule(passengers, strategy, calibration)
+            passengers, strategy, release_schedule(passengers, strategy, release)
         )
         self.assertEqual(len(events), len(passengers))
         self.assertTrue(

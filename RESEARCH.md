@@ -124,8 +124,8 @@ frustration, and every result about gate preparation time, depends on them. They
 
 | Assumption | Value | Registry path | What would be needed to promote it |
 |---|---|---|---|
-| Zone announcement interval | 20 s | `behaviour.preparationRelease.zoneIntervalSeconds` | Timed observations of zone calls at real gates |
-| Individual passenger call rate | 4 s | `behaviour.preparationRelease.passengerIntervalSeconds` | Timed observation of an agent calling passengers one by one — no airline does this, so it would have to be a staged trial |
+| Zone announcement interval | 20 s | `preparation.release.zoneIntervalSeconds` | Timed observations of zone calls at real gates |
+| Individual passenger call rate | 4 s | `preparation.release.passengerIntervalSeconds` | Timed observation of an agent calling passengers one by one — no airline does this, so it would have to be a staged trial |
 | Companion separation stress shock | 0.25 | `behaviour.companionSeparationShock` | A measured stress or self-report response from passengers separated from companions by boarding policy |
 | Preparation frustration rates | uncertainty 0.055, no-progress 0.050, crowding 0.070, instruction 0.055, correction shock 0.090 per minute | `behaviour.preparationPerMinute.*` | Gate observation paired with passenger self-reports over the waiting period |
 | Initial stress weights | delay 0.26, prior gate wait 0.10, dwell 0.05, uncertainty 0.16, fatigue 0.17, connection 0.18, unreliable information 0.14 | `behaviour.initial.*` | Survey or physiological measurement at T=0 |
