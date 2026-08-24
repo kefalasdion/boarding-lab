@@ -108,6 +108,11 @@ def _validate(scenario: dict[str, Any]) -> list[ValidationIssue]:
     for path in ("preparation.policy.readinessTarget", "preparation.policy.firstCohortTarget"):
         _range(issues, scenario, path, 0.01, 1.0)
     for path in (
+        "preparation.release.zoneIntervalSeconds",
+        "preparation.release.passengerIntervalSeconds",
+    ):
+        _range(issues, scenario, path, 0, 120)
+    for path in (
         "preparation.gateUsableAreaM2",
         "preparation.gateAspectRatio",
         "preparation.passengerMarkerDiameterM",

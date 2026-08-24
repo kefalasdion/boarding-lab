@@ -12,11 +12,13 @@ the announcement to prepare for boarding, and follows every individual through g
 walk to the aircraft, the aisle, the overhead bin and into their seat. It also tracks a
 model-predicted frustration value for each passenger, continuously, from T=0.
 
-![Three boarding methods racing on one clock. At 12:26 Strict Steffen has a perfectly formed queue and an empty aircraft, while Random is nearly finished.](docs/media/boarding-frustration-race.png)
+![Three boarding methods racing on one clock. At 13:08 Strict Steffen has a perfectly formed queue and an empty aircraft, while Random and back-to-front are already well into their cabins.](docs/media/boarding-frustration-race.png)
 
-*At 12:26 Strict Steffen has finally built its perfect queue — and its aircraft is still empty.
-Random, which never sorted anybody, is nearly done.*
-[Watch the 42-second comparison →](docs/media/boarding-frustration.mp4)
+*At 13:08 Strict Steffen has finally built its perfect queue — and its aircraft is still empty. It
+has already spent 5.35 frustration-minutes per passenger to get there. Random, which never sorted
+anybody, has been boarding for nearly ten minutes.*
+[Watch the 40-second comparison →](docs/media/boarding-frustration.mp4)
+· [Change the gate-agent call rate yourself →](https://flybycode.com/boarding)
 
 ---
 
@@ -27,28 +29,32 @@ stress — on one continuous clock:
 
 | | Random | Back-to-front | Strict Steffen |
 |---|---|---|---|
-| Line ready at | 02:48 | 04:11 | **12:46** |
-| Boarding started at | 03:21 | 04:46 | 13:22 |
-| **Whole journey, T=0 to last seat** | **20:44** | 23:04 | 25:01 |
+| Line ready at | 02:48 | 04:11 | **13:07** |
+| Boarding started at | 03:21 | 04:46 | 13:43 |
+| **Whole journey, T=0 to last seat** | **20:44** | 23:04 | 25:22 |
 | Cabin boarding alone | 17:24 | 18:18 | **11:39** |
-| Frustration while forming the line | 0.48 | 0.84 | **5.24** F·min |
-| Frustration while boarding | 2.07 | 2.69 | 3.17 F·min |
-| Companions separated | 0 | 32 | 54 |
+| Frustration while forming the line | 0.48 | 0.84 | **5.35** F·min |
+| Frustration while boarding | 2.07 | 2.69 | 3.06 F·min |
+| Companions split up in the queue | 0 | 0 | 54 |
+| Companions moved from their seat zone | 0 | 32 | 54 |
 
 **Strict Steffen genuinely is the fastest at filling a cabin** — 11:39 against Random's 17:24, which
 is what the published experiments measured and why the method is famous. It still loses the whole
-journey by more than four minutes, because building its perfect queue takes nearly thirteen.
+journey by more than four minutes, because building its perfect queue takes just over thirteen.
 
-This is not one lucky seed. Across 100 seeded comparisons (88 in which all three methods completed),
-Random wins 80, back-to-front 8, Strict Steffen **0**. The ranges do not overlap — Random's p90 total
-is 22:36, Strict Steffen's p10 is 24:53.
+Back-to-front never splits a group up: its 32 are passengers the companion policy moved to a different
+part of the boarding order to keep them together, which is not the same thing.
+
+This is not one lucky seed. Across 100 seeded comparisons, all of which completed, Random wins 92,
+back-to-front 8, Strict Steffen **0**. The ranges do not overlap — Random's p90 total is 22:33, Strict
+Steffen's p10 is 24:54.
 
 ### Reading the frustration numbers
 
 Frustration is measured in **F·min** — frustration-minutes accumulated per passenger. A passenger
 sitting at 0.5 frustration for two minutes accumulates 1.0 F·min.
 
-In plain language: **5.24 F·min is as if every passenger spent five and a quarter minutes completely
+In plain language: **5.35 F·min is as if every passenger spent five and a third minutes completely
 fed up before boarding even began.** Random's equivalent is about half a minute.
 
 The two phase figures never overlap and always sum to the total, so you can see exactly where the
@@ -70,7 +76,11 @@ The headline result leans on two numbers chosen rather than measured:
    at a time therefore cannot finish before 11:56, and that single assumption is most of why Strict
    Steffen loses. No published source gives a real gate-agent rate.
 2. **Being separated from your travelling companions adds 0.25 to your stress load.** Strict Steffen
-   separates 54 of 180 passengers; that penalty is a large part of its frustration result.
+   splits up 54 of 180 passengers. That penalty is real but secondary: the thirteen minutes of
+   preparation is what drives the result.
+
+The four-second call rate is a scenario input at `preparation.release.passengerIntervalSeconds`, so
+anyone can vary it and watch the conclusion move.
 
 There is also published evidence pointing *against* part of the conclusion. The one experiment that
 measured both boarding speed and passenger preference (MythBusters, 2014) found the **fastest** method
@@ -196,15 +206,17 @@ whose value has drifted from configuration.
 | [config/parameter-registry.json](config/parameter-registry.json) | Provenance for every configurable value |
 
 The core aircraft mechanics come from Michael Schultz's field-validated stochastic boarding model
-(Aerospace 2018, 5(1), 27), measured during real A320 and 737 turnarounds and reproducing those
-measurements to within 5%.
+(Aerospace 2018, 5(1), 27), measured during real A320 and 737 turnarounds. Schultz reported that *his*
+model reproduced *his* field measurements to within 5%. That is his result for his model, not a result
+for Boarding Lab: reproducing those reference conditions here is Layer 2 of
+[VALIDATION_PLAN.md](VALIDATION_PLAN.md), and it has not been done yet.
 
 ---
 
 ## Reproducing everything
 
 ```bash
-python3 -m unittest discover -s tests -p 'test_*.py'   # 110 simulation and contract tests
+python3 -m unittest discover -s tests -p 'test_*.py'   # 115 simulation and contract tests
 npm test                                                # 22 browser-module tests
 npx playwright test                                     # end-to-end browser experience
 npm run test:all                                        # all three

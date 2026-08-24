@@ -90,7 +90,7 @@ boarding began, and none of them measured how passengers felt.
 These sources justify the shape of a mechanism. No numerical coefficient is copied from any of them
 into this simulator.
 
-### Jiang et al., *Model of passenger behavior choice under flight delay based on dynamic reference point*
+### Jiang & Ren, *Model of passenger behavior choice under flight delay based on dynamic reference point*
 Journal of Air Transport Management 75 (2019), 51–60. DOI
 [10.1016/j.jairtraman.2018.11.008](https://doi.org/10.1016/j.jairtraman.2018.11.008)
 
@@ -124,8 +124,8 @@ frustration, and every result about gate preparation time, depends on them. They
 
 | Assumption | Value | Registry path | What would be needed to promote it |
 |---|---|---|---|
-| Zone announcement interval | 20 s | `behaviour.preparationRelease.zoneIntervalSeconds` | Timed observations of zone calls at real gates |
-| Individual passenger call rate | 4 s | `behaviour.preparationRelease.passengerIntervalSeconds` | Timed observation of an agent calling passengers one by one — no airline does this, so it would have to be a staged trial |
+| Zone announcement interval | 20 s | `preparation.release.zoneIntervalSeconds` | Timed observations of zone calls at real gates |
+| Individual passenger call rate | 4 s | `preparation.release.passengerIntervalSeconds` | Timed observation of an agent calling passengers one by one — no airline does this, so it would have to be a staged trial |
 | Companion separation stress shock | 0.25 | `behaviour.companionSeparationShock` | A measured stress or self-report response from passengers separated from companions by boarding policy |
 | Preparation frustration rates | uncertainty 0.055, no-progress 0.050, crowding 0.070, instruction 0.055, correction shock 0.090 per minute | `behaviour.preparationPerMinute.*` | Gate observation paired with passenger self-reports over the waiting period |
 | Initial stress weights | delay 0.26, prior gate wait 0.10, dwell 0.05, uncertainty 0.16, fatigue 0.17, connection 0.18, unreliable information 0.14 | `behaviour.initial.*` | Survey or physiological measurement at T=0 |
@@ -136,6 +136,10 @@ striking number. Calling 180 passengers individually cannot finish before 11 min
 that single assumption is most of why Strict Steffen loses. It is a deliberately transparent
 scenario assumption: *if* you had to call people one at a time to build a perfect queue, this is what
 it would cost. It is not an observed gate-agent rate, and no published source gives one.
+
+The companion-separation shock carries less weight than its prominence suggests. Setting it to zero
+moves Strict Steffen's total burden from 8.90 to 7.47 F·min — about 16% of its own figure, or 22% of
+the gap to Random. The dominant driver is simply that preparation lasts thirteen minutes.
 
 **A model whose conclusion rests on tier 3 values is a hypothesis, not a finding.** That is what this
 one is.
@@ -168,19 +172,23 @@ parent-child pairs got priority and some seat assignments went wrong. And critic
 **the clock started when boarding started.** The time to organise 72 people into Steffen's exact
 sequence is not in these numbers.
 
-### MythBusters, *Plane Boarding* (Episode 222, 2014)
+### MythBusters, *Plane Boarding*, first aired 21 August 2014
 
 A mock cabin with 173 real airplane seats and real overhead bins, real flight attendants, gate-checked
 luggage, and roughly 5% of participants instructed to behave awkwardly — going upstream, sitting in
-the wrong seat, boarding with small children, blocking the aisle. Reported by
-[Jalopnik](https://www.jalopnik.com/mythbusters-proves-most-airlines-board-planes-all-wrong-1636981904/):
+the wrong seat, boarding with small children, blocking the aisle. Five methods were tested, each timed
+and each scored by the participants. The times and satisfaction scores below are taken from the
+Wikipedia record of the 2014 season and corroborated by secondary coverage; the widely cited
+[Jalopnik write-up](https://www.jalopnik.com/mythbusters-proves-most-airlines-board-planes-all-wrong-1636981904/)
+reported only four of the five.
 
-| Method | Time | Passenger rating |
+| Method | Time | Satisfaction score |
 |---|---|---|
-| Free-for-all, no assigned seats | 14:07 | **Least favourable** |
-| WilMA | 14:55 | **Most favourable** |
-| Free-for-all, assigned seats | 17:15 | Less favourable |
-| Back-to-front (standard zones) | 24:29 | Not favourable |
+| Random, no assigned seats | 14:07 | **−5 — the lowest** |
+| WILMA | 14:55 | 102 |
+| WILMA Block | 15:07 | 105 |
+| Reverse Pyramid | 15:10 | **113 — the highest** |
+| Back-to-front | 24:29 | 19 |
 
 This is the only one of these experiments that measured how passengers *felt* as well as how long they
 took, and it found that **the fastest method was the least liked.** See "What would change my mind"
@@ -232,8 +240,8 @@ Honest failure conditions for this model. Each of these would force a change, no
    disappears. This is the single most load-bearing assumption in the model.
 
 2. **Passenger self-reports contradicting the frustration ordering.** MythBusters already points this
-   way. Their fastest method (free-for-all, no assigned seats) was rated *least* favourably, and WilMA
-   was preferred despite being slower. This simulator concludes Random produces both the fastest
+   way. Their fastest method (random, no assigned seats) scored lowest on satisfaction, and the
+   method the participants liked most, Reverse Pyramid, was about a minute slower. This simulator concludes Random produces both the fastest
    journey and the lowest model-predicted frustration. The MythBusters result suggests that real
    passengers may dislike loose, unstructured boarding *even when it is quick* — that perceived order
    and fairness carry weight this model does not represent at all. Boarding Lab currently models the
@@ -241,12 +249,22 @@ Honest failure conditions for this model. Each of these would force a change, no
    feeling organised. **If that comfort is real and large, Random's frustration advantage is
    overstated.**
 
-3. **A measured companion-separation response far from 0.25.** Strict Steffen separates 54 of 180
-   passengers in the reference run. If the true stress response to that separation is near zero, a
-   large part of the frustration gap closes.
+3. **A measured companion-separation response far from 0.25.** Strict Steffen splits up 54 of 180
+   passengers in the reference run. If the true stress response to that separation is near zero, its
+   total burden falls from 8.90 to 7.47 F·min, closing about 22% of the gap to Random. Worth knowing,
+   but on its own it would not overturn the result: the thirteen minutes of preparation would remain.
 
 4. **Field data showing zone announcements do not stack.** The back-to-front result depends on zones
    being called at intervals rather than all at once.
+
+5. **An ordered queue built without individual calls.** Strict Steffen is charged an individual call
+   for every passenger only because this model hard-codes individual release for that one strategy.
+   Real gates have formed exactly ordered lines without calling anybody by name: Southwest Airlines
+   boarded roughly 175 passengers into an exact numbered order — A1 to C60, printed on the boarding
+   pass, with numbered stanchions at the gate — for decades, retiring the practice in January 2026
+   when it moved to assigned seating. Release Strict Steffen as grouped calls instead of individual
+   ones and it wins every run in this model. That is a modelling choice doing a great deal of work,
+   and it is the honest weak point of the comparison.
 
 Until at least the first two are answered with observation, every frustration number this project
 publishes is a model prediction under stated assumptions — interesting, reproducible, and unproven.

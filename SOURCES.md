@@ -53,7 +53,7 @@ Preprint: https://arxiv.org/abs/2607.21512
 
 ## Delay heterogeneity and dynamic expectations
 
-### Jiang et al. — Model of passenger behavior choice under flight delay based on dynamic reference point
+### Jiang & Ren — Model of passenger behavior choice under flight delay based on dynamic reference point
 Journal of Air Transport Management 75 (2019), 51–60.
 
 Supports:

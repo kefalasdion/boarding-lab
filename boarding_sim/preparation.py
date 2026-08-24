@@ -161,6 +161,27 @@ def _gate_frame(
     )
 
 
+# Headings a blocked passenger tries, as (cos, sin) of the deviation from the direct
+# line to their slot. Every entry keeps a positive forward component, so an accepted
+# step always shortens the remaining distance and the walk cannot cycle.
+STEERING_HEADINGS: tuple[tuple[float, float], ...] = (
+    (1.0, 0.0),
+    (0.93969262, 0.34202014),
+    (0.93969262, -0.34202014),
+    (0.76604444, 0.64278761),
+    (0.76604444, -0.64278761),
+    (0.5, 0.86602540),
+    (0.5, -0.86602540),
+    (0.17364818, 0.98480775),
+    (0.17364818, -0.98480775),
+)
+
+# A passenger blocked on every heading for this long stops giving way and squeezes
+# through. Without it a slot enclosed by already-staged passengers is unreachable and
+# preparation runs to its timeout — a numerical dead end, not a modelled outcome.
+SQUEEZE_AFTER_BLOCKED_SECONDS = 30.0
+
+
 def _advance_gate_positions(
     passengers: list[Passenger],
     positions: dict[int, tuple[float, float]],
@@ -184,22 +205,42 @@ def _advance_gate_positions(
         remaining = _distance(current, target)
         if remaining <= 1e-9:
             positions[passenger_id] = target
+            passenger.blocked_seconds = 0.0
             continue
         speed = passenger.walking_speed_mps / (
             1.0 + 1.8 * gate_density * gate_density
         )
         step = min(remaining, speed * dt)
-        ratio = step / remaining
-        proposed = (
-            current[0] + (target[0] - current[0]) * ratio,
-            current[1] + (target[1] - current[1]) * ratio,
-        )
+        forward = ((target[0] - current[0]) / remaining, (target[1] - current[1]) / remaining)
+        left = (-forward[1], forward[0])
         protected.pop(passenger_id, None)
-        blocked = any(
-            _distance(proposed, other) < collision_tolerance
-            for other in protected.values()
-        )
-        accepted = current if blocked else proposed
+
+        accepted = None
+        for cosine, sine in STEERING_HEADINGS:
+            candidate = (
+                current[0] + step * (forward[0] * cosine + left[0] * sine),
+                current[1] + step * (forward[1] * cosine + left[1] * sine),
+            )
+            if all(
+                _distance(candidate, other) >= collision_tolerance
+                for other in protected.values()
+            ):
+                accepted = candidate
+                break
+
+        if accepted is None:
+            passenger.blocked_seconds += dt
+            if passenger.blocked_seconds >= SQUEEZE_AFTER_BLOCKED_SECONDS:
+                ratio = step / remaining
+                accepted = (
+                    current[0] + (target[0] - current[0]) * ratio,
+                    current[1] + (target[1] - current[1]) * ratio,
+                )
+            else:
+                accepted = current
+        else:
+            passenger.blocked_seconds = 0.0
+
         positions[passenger_id] = accepted
         protected[passenger_id] = accepted
 
@@ -221,7 +262,7 @@ def simulate_preparation(
     complexity = strategy_complexity(strategy)
     families = _groups(passengers)
     events = apply_companion_separation_shock(passengers, strategy, calibration)
-    schedule = release_schedule(passengers, strategy, calibration)
+    schedule = release_schedule(passengers, strategy, config["release"])
     events.extend(release_events(passengers, strategy, schedule))
     history = [_snapshot(passengers, 0.0)]
     total_corrections = 0
@@ -255,6 +296,7 @@ def simulate_preparation(
         )
         passenger.move_remaining_s = 0.0
         passenger.correct_remaining_s = 0.0
+        passenger.blocked_seconds = 0.0
 
     gate_frames = [_gate_frame(passengers, positions, 0.0)]
 

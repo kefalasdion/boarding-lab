@@ -22,14 +22,19 @@ def _cohort_order(passengers: list[Passenger]) -> dict[int, int]:
 def release_schedule(
     passengers: list[Passenger],
     strategy: Strategy,
-    calibration: dict[str, Any],
+    release: dict[str, Any],
 ) -> dict[int, float]:
-    """Return the time at which each passenger becomes eligible to move."""
+    """Return the time at which each passenger becomes eligible to move.
+
+    `release` is the scenario's `preparation.release` block. The call rate is a
+    property of the gate operation being modelled, not of passenger psychology,
+    which is why it is a scenario input rather than a behaviour coefficient.
+    """
     mode = strategy_release_mode(strategy)
     if mode == "general":
         return {passenger.id: 0.0 for passenger in passengers}
 
-    intervals = calibration["preparationRelease"]
+    intervals = release
     if mode == "individual":
         interval = float(intervals["passengerIntervalSeconds"])
         return {
