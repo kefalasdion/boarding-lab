@@ -30,7 +30,7 @@ New in this model version: `tests/test_gate_reachability.py` covers the gate-mov
 
 ## Representative public comparison
 
-**No results table is published in this report.** The tracked 100-run artifact is being rebuilt for `pbs-v2-python-1.2.0`, and the previous table and the previous total-time P10/P50/P90 block described model `1.1.0`, before the gate-movement fix. They have been deleted rather than restated, because carrying them forward would misreport the current model.
+**No results table is published in this report.** The tracked 100-run artifact has been rebuilt for `pbs-v2-python-1.2.0`, and all 100 comparisons completed. The previous table and the previous total-time P10/P50/P90 block described model `1.1.0`, before the gate-movement fix, and have been deleted rather than restated, because carrying them forward would misreport the current model.
 
 The authority for representative and distribution figures is the tracked artifact itself, [`web/data/default-comparison.json`](web/data/default-comparison.json), rebuilt with:
 
