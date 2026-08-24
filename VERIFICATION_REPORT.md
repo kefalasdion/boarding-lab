@@ -1,8 +1,8 @@
 # Verification Report
 
-**Date:** 2026-08-14
+**Date:** 2026-08-24
 
-**Model:** `pbs-v2-python-1.1.0`
+**Model:** `pbs-v2-python-1.2.0`
 
 **Result schema:** `1.1.0`
 
@@ -14,58 +14,39 @@ This report verifies software behavior and presentation quality. It does not est
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 npm test
 npm run test:e2e
-bash tests/smoke_standalone.sh
-python3 -m compileall -q boarding_sim scripts
-node --check web/js/app.js
 ```
 
 Fresh results:
 
-- Python: **90 passed**, 0 failed;
-- pure JavaScript/reference: **16 passed**, 0 failed;
-- Playwright desktop/390 × 844 phone: **6 passed**, 0 failed;
-- axe: **0 serious or critical violations** on desktop and phone;
-- clean standalone smoke: passed using Python runtime only;
-- Python and JavaScript syntax checks: passed.
+- Python: **115 passed**, 0 failed;
+- browser modules and pure JavaScript reference: **22 passed**, 0 failed;
+- Playwright desktop and 390 × 844 phone: **6 passed**, 0 failed.
 
-Coverage includes fair manifest cloning, exact Strict Steffen ordering, deterministic gate coordinates, complete preparation, phase-specific timeouts, aircraft movement invariants, additive phase burdens, replay traceability, API limits/security headers, playback controls, sharing text, dynamic no-winner behavior, responsive overflow, and accessibility.
+The standalone smoke script, the `compileall` and `node --check` syntax passes, and the axe run outside the Playwright suite were **not re-measured** for this model version.
+
+Coverage includes fair manifest cloning, exact Strict Steffen ordering, deterministic gate coordinates, complete preparation, gate reachability for every floor slot, phase-specific timeouts, aircraft movement invariants, additive phase burdens, replay traceability, API limits/security headers, playback controls, sharing text, dynamic no-winner behavior, responsive overflow, and accessibility.
+
+New in this model version: `tests/test_gate_reachability.py` covers the gate-movement fix, asserting that previously stalling seeds now complete, that every passenger is correctly staged before boarding, and that `companion_separations` is distinct from `companion_overrides`.
 
 ## Representative public comparison
 
-The tracked artifact uses base seed `20260813`, 100 fair comparisons, and representative seed `20260841`.
+**No results table is published in this report.** The tracked 100-run artifact is being rebuilt for `pbs-v2-python-1.2.0`, and the previous table and the previous total-time P10/P50/P90 block described model `1.1.0`, before the gate-movement fix. They have been deleted rather than restated, because carrying them forward would misreport the current model.
 
-| Strategy | Preparation finished | Boarding started | Boarding finished | Prep burden mean | Embarkation burden mean | Total burden mean |
-|---|---:|---:|---:|---:|---:|---:|
-| Random | 216.0 s | 252.0 s | 1229.0 s | 0.6264 F·min | 1.9985 F·min | 2.6249 F·min |
-| Back-to-front | 195.0 s | 231.0 s | 1347.5 s | 0.6191 F·min | 2.5319 F·min | 3.1510 F·min |
-| Strict Steffen | 231.0 s | 275.0 s | 960.0 s | 0.7155 F·min | 1.3162 F·min | 2.0317 F·min |
+The authority for representative and distribution figures is the tracked artifact itself, [`web/data/default-comparison.json`](web/data/default-comparison.json), rebuilt with:
 
-The three preparation finishes and three boarding starts are distinct. At intermediate clock positions, one method can still be preparing while another has moved to access or begun aircraft boarding. The clock never resets per lane.
+```bash
+python3 -m scripts.build_default_comparison --workers 4
+```
 
-The 100-run total-time P10/P50/P90 values are:
+The structural properties the suites assert about that artifact still hold: the three preparation finishes and three boarding starts are distinct, at intermediate clock positions one method can still be preparing while another has moved to access or begun aircraft boarding, and the clock never resets per lane.
 
-- Random: `1150.1 / 1256.25 / 1355.5 s`;
-- Back-to-front: `1234.6 / 1340.5 / 1461.7 s`;
-- Strict Steffen: `896.55 / 943.75 / 1011.15 s`.
-
-These are model outputs under provisional preparation/frustration inputs, not an operational recommendation.
+Every figure produced from that artifact is a model output under provisional preparation and frustration inputs, not an operational recommendation.
 
 ## Determinism and payload measurements
 
-```bash
-/usr/bin/time -p python3 scripts/build_default_comparison.py --workers 4
-git diff --exit-code -- web/data/default-comparison.json
-```
+All simulation randomness comes from explicit seeded PRNG streams. No Python global-random import, browser randomness, or clock-derived seed is used. Determinism for identical seed and scenario is asserted by the passing Python suite.
 
-- 100-run artifact build: **125.06 s wall time**;
-- regeneration diff: none;
-- tracked default artifact: **3,850,741 bytes**;
-- compact public `/api/compare` result at representative seed: **4,557,526 bytes**;
-- live three-strategy comparison computation: **4.68 s**;
-- compact per-strategy representative replays: about **1.16–1.29 MB** each;
-- full internal results retain research diagnostics; public delivery omits those duplicates.
-
-All simulation randomness comes from explicit seeded PRNG streams. No Python global-random import, browser randomness, or clock-derived seed is used.
+Artifact build wall time, tracked artifact size, compact `/api/compare` payload size, live comparison computation time, and per-strategy replay sizes were **not re-measured** for this model version. The previous figures have been removed rather than carried forward.
 
 ## Playback performance
 
@@ -75,32 +56,21 @@ Command:
 npm run measure:playback
 ```
 
-Thirty-second Chromium run at 1440 × 900 with all 540 passenger marks active:
-
-- sampled frames: **1,799**;
-- median interval: **16.7 ms**;
-- P95 interval: **17.6 ms**;
-- maximum interval: **17.8 ms**;
-- sustained stutter or unresponsive controls: none observed.
-
-This meets the targets of median below 16.7 ms within timer precision and P95 below 33.3 ms.
+This measurement was **not re-run** for this model version, so no frame-interval figures are reported here. The previously stated targets are unchanged: median interval below 16.7 ms within timer precision, and P95 below 33.3 ms.
 
 ## Browser and failure-state verification
 
-Verified in a real desktop browser and at 390 × 844:
+Verified by the passing Playwright suite in Chromium at desktop size and at 390 × 844:
 
-- scattered passengers form three visibly different queues;
-- lane transitions follow their own preparation and first-entry timestamps;
-- the live 0–100 frustration index remains separate from accumulated F·minutes;
-- passenger inspector values come from serialized replay frames;
-- preparation-finished, boarding-started, and boarding-finished values match the API;
-- preparation, embarkation, and total burden are all visible and labeled “model-predicted” and “provisional”;
-- timing table includes P10–P90, 95% mean intervals, and valid/timed-out/invalid counts;
-- one-second preparation timeout produces no boarding events and no winner;
-- canvas has a live text-table alternative;
-- phone document width equals its 390 px viewport;
-- keyboard-focusable scroll regions, visible focus, reduced-motion behavior, and contrast checks pass;
-- no console/page errors occurred.
+- the default comparison loads and reports either a winner or an explicit no-winner headline;
+- the timing table shows preparation finished, boarding started, boarding finished, and frustration accumulated during preparation;
+- the three lanes have distinct preparation finishes and distinct first aircraft entries, and at a staggered clock position each lane reports its own phase;
+- a one-second preparation timeout produces no winner, no aircraft events, and a `not_started` embarkation phase in every strategy;
+- phone document scroll width equals its client width, so there is no document-level horizontal overflow;
+- axe reports **0 serious or critical violations** on the loaded page;
+- no console or page errors occurred.
+
+The wider manual browser walkthrough recorded in earlier versions of this report — passenger inspector values, reduced-motion behaviour, contrast checks, keyboard-focusable scroll regions and the canvas text-table alternative — was **not repeated** for this model version.
 
 ## Scientific acceptance status
 

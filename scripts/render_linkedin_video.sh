@@ -8,7 +8,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUTPUT="${ROOT}/output"
 
 cd "${ROOT}"
-rm -rf "${OUTPUT}"
+# Clear only what this script produces; output/ also holds the explorer bake.
+rm -f "${OUTPUT}"/*.webm "${OUTPUT}"/poster.png "${OUTPUT}"/boarding-frustration-linkedin.mp4
 mkdir -p "${OUTPUT}" docs/media
 
 python3 -m boarding_sim --port "${PORT}" >/dev/null 2>&1 &
@@ -29,6 +30,14 @@ ffmpeg -v error -y -i "${OUTPUT}/race.webm" \
   "${OUTPUT}/boarding-frustration-linkedin.mp4"
 
 cp "${OUTPUT}/poster.png" docs/media/boarding-frustration-poster.png
+cp "${OUTPUT}/boarding-frustration-linkedin.mp4" docs/media/boarding-frustration.mp4
+
+# The README still is the moment Strict Steffen's queue is finally complete and
+# its aircraft is still empty. That timestamp moves whenever the model changes,
+# so read it from the artifact rather than hard-coding a frame.
+FRAME_AT="$(python3 scripts/readme_still_offset.py)"
+ffmpeg -v error -y -ss "${FRAME_AT}" -i "${OUTPUT}/boarding-frustration-linkedin.mp4" \
+  -frames:v 1 docs/media/boarding-frustration-race.png
 
 ffprobe -v error -show_entries format=duration \
   -show_entries stream=width,height,codec_name,r_frame_rate \
