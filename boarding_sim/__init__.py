@@ -10,4 +10,4 @@ __all__ = [
     "run_flight",
     "run_monte_carlo",
 ]
-__version__ = "1.1.0"
+__version__ = "0.4.0"

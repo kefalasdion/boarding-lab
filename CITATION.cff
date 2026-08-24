@@ -12,8 +12,8 @@ authors:
     given-names: Dennis
 type: software
 license: MIT
-version: 0.3.0
-date-released: "2026-08-14"
+version: 0.4.0
+date-released: "2026-08-25"
 keywords:
   - aircraft boarding
   - discrete event simulation

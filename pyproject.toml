@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "boarding-lab"
-version = "0.3.0"
+version = "0.4.0"
 description = "Deterministic passenger boarding and frustration research simulator"
 requires-python = ">=3.11"
 license = "MIT"
